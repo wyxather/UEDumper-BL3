@@ -133,11 +133,13 @@
   <ItemGroup>
     <ClInclude Include="Source\UEDumper.h" />
     <ClInclude Include="Source\UEGame.h" />
+    <ClInclude Include="Source\UEEngine.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Entry.cpp" />
     <ClCompile Include="Source\UEDumper.cpp" />
     <ClCompile Include="Source\UEGame.cpp" />
+    <ClCompile Include="Source\UEEngine.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

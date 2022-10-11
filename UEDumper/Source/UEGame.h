@@ -1,7 +1,7 @@
 #pragma once
 
+#include "UEEngine.h"
 #include <filesystem>
-#include <Windows.h>
 
 class UEGame
 {
@@ -10,6 +10,7 @@ public:
 	virtual ~UEGame() noexcept;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return !error; }
+	[[nodiscard]] constexpr auto&& getVersion() const noexcept { return version; }
 
 private:
 	bool error;

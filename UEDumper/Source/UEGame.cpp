@@ -1,7 +1,7 @@
 #include "UEGame.h"
 #pragma comment(lib, "version.lib")
 
-UEGame::UEGame() noexcept : error{ false }, id{ 0 }, handle{ nullptr }
+UEGame::UEGame() noexcept : error{ false }, id{ 0 }, handle{ nullptr }, version{}
 {
 	std::printf("UEGame...\n");
 
@@ -22,7 +22,7 @@ UEGame::UEGame() noexcept : error{ false }, id{ 0 }, handle{ nullptr }
 		error = true;
 		return;
 	}
-	
+
 	{
 		WCHAR name[MAX_PATH];
 		DWORD size{ MAX_PATH };
@@ -34,15 +34,25 @@ UEGame::UEGame() noexcept : error{ false }, id{ 0 }, handle{ nullptr }
 	}
 
 	{
-		DWORD handle{};
+		DWORD handle;
 		DWORD size{ GetFileVersionInfoSizeW(path.c_str(), &handle) };
+		if (handle || !size) {
+			error = true;
+			return;
+		}
 
 		std::unique_ptr<BYTE[]> data{ std::make_unique<decltype(data)::element_type[]>(size) };
-		GetFileVersionInfoW(path.c_str(), handle, size, data.get());
+		if (!GetFileVersionInfoW(path.c_str(), handle, size, data.get())) {
+			error = true;
+			return;
+		}
 
 		VS_FIXEDFILEINFO* info;
 		UINT len;
-		VerQueryValueW(data.get(), L"\\", reinterpret_cast<LPVOID*>(&info), &len);
+		if (!VerQueryValueW(data.get(), L"\\", reinterpret_cast<LPVOID*>(&info), &len)) {
+			error = true;
+			return;
+		}
 
 		version[0] = HIWORD(info->dwFileVersionMS);
 		version[1] = LOWORD(info->dwFileVersionMS);

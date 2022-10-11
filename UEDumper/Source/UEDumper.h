@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UEGame.h"
+#include "UEEngine.h"
 
 class UEDumper
 {
@@ -8,7 +9,8 @@ public:
 	enum class Error
 	{
 		SUCCESS,
-		GAME_NOT_FOUND
+		GAME_NOT_FOUND,
+		ENGINE_INIT_FAILURE,
 	};
 
 	explicit UEDumper(const int argc, const char* argv[]) noexcept;
@@ -20,5 +22,6 @@ private:
 	Error error;
 	std::filesystem::path path;
 
-	std::optional<UEGame> game;
+	std::optional<const UEGame> game;
+	std::optional<const UEEngine> engine;
 };
