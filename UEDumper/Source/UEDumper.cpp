@@ -25,7 +25,7 @@ UEDumper::~UEDumper() noexcept
 	std::printf("~UEDumper...\n");
 }
 
-auto UEDumper::dump() noexcept -> void
+auto UEDumper::dump() const noexcept -> void
 {
 	std::printf("Game Informations\n");
 	std::printf("Name: %ls\n", game->getPath().filename().wstring().c_str());

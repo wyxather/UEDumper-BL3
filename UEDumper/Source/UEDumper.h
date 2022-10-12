@@ -12,10 +12,10 @@ public:
 		ENGINE_INIT_FAILURE,
 	};
 
-	explicit UEDumper(const int argc, const char* argv[]) noexcept;
-	virtual ~UEDumper() noexcept;
+	UEDumper(const int argc, const char* argv[]) noexcept;
+	~UEDumper() noexcept;
 
-	virtual void dump() noexcept;
+	auto dump() const noexcept -> void;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return error == Error::SUCCESS; }
 	[[nodiscard]] constexpr auto getError() const noexcept { return error; }

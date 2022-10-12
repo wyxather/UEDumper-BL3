@@ -6,7 +6,7 @@ class UEPointer
 {
 public:
 	constexpr UEPointer() noexcept : data{ 0 } {}
-	constexpr UEPointer(std::uintptr_t address) noexcept : data{ address } {}
+	constexpr UEPointer(const std::uintptr_t address) noexcept : data{ address } {}
 	constexpr ~UEPointer() noexcept = default;
 
 	[[nodiscard]] constexpr operator bool() const noexcept

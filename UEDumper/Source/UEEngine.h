@@ -7,8 +7,8 @@
 class UEEngine
 {
 public:
-	explicit UEEngine(const UEPointer version[4]) noexcept;
-	virtual ~UEEngine() noexcept;
+	UEEngine(const UEPointer version[4]) noexcept;
+	~UEEngine() noexcept;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return !error; }
 

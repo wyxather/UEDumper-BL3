@@ -1,4 +1,8 @@
 #include "UEGame.h"
+#include <array>
+#include <winternl.h>
+
+#pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "version.lib")
 
 UEGame::UEGame() noexcept : error{ false }, id{}, handle{}, version{}
@@ -59,6 +63,33 @@ UEGame::UEGame() noexcept : error{ false }, id{}, handle{}, version{}
 		version[2] = HIWORD(info->dwFileVersionLS);
 		version[3] = LOWORD(info->dwFileVersionLS);
 	}
+
+	{
+		PROCESS_BASIC_INFORMATION pbi;
+		if (!NT_SUCCESS(NtQueryInformationProcess(handle, ProcessBasicInformation, &pbi, sizeof(pbi), 0))) {
+			error = true;
+			return;
+		}
+
+		UEPointer base = read<std::uintptr_t>(reinterpret_cast<std::byte*>(pbi.PebBaseAddress) + 16);
+		if (!base) {
+			error = true;
+			return;
+		}
+
+		std::array<std::byte, 1024> buffer;
+		if (!read(base, buffer.data(), buffer.size())) {
+			error = true;
+			return;
+		}
+
+		const auto size = reinterpret_cast<PIMAGE_NT_HEADERS>(buffer.data() + (reinterpret_cast<PIMAGE_DOS_HEADER>(buffer.data()))->e_lfanew)->OptionalHeader.SizeOfImage;
+		image = std::make_unique<decltype(image)::element_type[]>(size);
+		if (!read(base, image.get(), size)) {
+			error = true;
+			return;
+		}
+	}
 }
 
 UEGame::~UEGame() noexcept
@@ -67,4 +98,10 @@ UEGame::~UEGame() noexcept
 
 	if (handle)
 		CloseHandle(handle);
+}
+
+auto UEGame::read(void* const address, void* const buffer, const SIZE_T size) const noexcept -> bool
+{
+	SIZE_T readBytes;
+	return ReadProcessMemory(handle, address, buffer, size, &readBytes) && readBytes == size;
 }
