@@ -3,11 +3,15 @@
 #include "UEPointer.h"
 #include <Windows.h>
 #include <filesystem>
+#include <array>
+#include <algorithm>
+
+class UEGame;
 
 class UEEngine
 {
 public:
-	UEEngine(const UEPointer version[4]) noexcept;
+	UEEngine(const UEGame& game) noexcept;
 	~UEEngine() noexcept;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return !error; }

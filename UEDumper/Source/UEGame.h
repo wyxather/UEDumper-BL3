@@ -10,6 +10,7 @@ public:
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return !error; }
 	[[nodiscard]] constexpr auto&& getPath() const noexcept { return path; }
+	[[nodiscard]] constexpr auto&& getImage() const noexcept { return image; }
 	[[nodiscard]] constexpr auto&& getVersion() const noexcept { return version; }
 
 	[[nodiscard]] auto read(void* const address, void* const buffer, const SIZE_T size) const noexcept -> bool;
@@ -31,5 +32,5 @@ private:
 	UEPointer version[4];
 
 	std::filesystem::path path;
-	std::unique_ptr<std::byte[]> image;
+	std::vector<std::byte> image;
 };

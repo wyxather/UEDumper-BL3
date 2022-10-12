@@ -1,5 +1,4 @@
 #include "UEGame.h"
-#include <array>
 #include <winternl.h>
 
 #pragma comment(lib, "ntdll.lib")
@@ -84,8 +83,8 @@ UEGame::UEGame() noexcept : error{ false }, id{}, handle{}, version{}
 		}
 
 		const auto size = reinterpret_cast<PIMAGE_NT_HEADERS>(buffer.data() + (reinterpret_cast<PIMAGE_DOS_HEADER>(buffer.data()))->e_lfanew)->OptionalHeader.SizeOfImage;
-		image = std::make_unique<decltype(image)::element_type[]>(size);
-		if (!read(base, image.get(), size)) {
+		image.resize(size);
+		if (!read(base, image.data(), size)) {
 			error = true;
 			return;
 		}

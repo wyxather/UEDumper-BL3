@@ -11,7 +11,7 @@ UEDumper::UEDumper(const int argc, const char* argv[]) noexcept : error{ Error::
 		return;
 	}
 
-	if (engine.emplace(game->getVersion()); !engine.value()) {
+	if (engine.emplace(game.value()); !engine.value()) {
 		error = Error::ENGINE_INIT_FAILURE;
 		return;
 	}
