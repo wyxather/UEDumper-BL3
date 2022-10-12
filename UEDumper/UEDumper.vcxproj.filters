@@ -24,6 +24,9 @@
     <ClInclude Include="Source\UEEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UEPointer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\UEDumper.cpp">

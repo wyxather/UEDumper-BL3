@@ -1,7 +1,6 @@
 #pragma once
 
 #include "UEGame.h"
-#include "UEEngine.h"
 
 class UEDumper
 {
@@ -15,6 +14,8 @@ public:
 
 	explicit UEDumper(const int argc, const char* argv[]) noexcept;
 	virtual ~UEDumper() noexcept;
+
+	virtual void dump() noexcept;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return error == Error::SUCCESS; }
 

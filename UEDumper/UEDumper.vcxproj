@@ -134,6 +134,7 @@
     <ClInclude Include="Source\UEDumper.h" />
     <ClInclude Include="Source\UEGame.h" />
     <ClInclude Include="Source\UEEngine.h" />
+    <ClInclude Include="Source\UEPointer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Entry.cpp" />

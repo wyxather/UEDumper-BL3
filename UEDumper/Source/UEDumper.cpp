@@ -24,3 +24,7 @@ UEDumper::~UEDumper() noexcept
 
 	std::printf("~UEDumper...\n");
 }
+
+auto UEDumper::dump() noexcept -> void
+{
+}

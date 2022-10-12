@@ -1,7 +1,7 @@
 #include "UEGame.h"
 #pragma comment(lib, "version.lib")
 
-UEGame::UEGame() noexcept : error{ false }, id{ 0 }, handle{ nullptr }, version{}
+UEGame::UEGame() noexcept : error{ false }, id{}, handle{}, version{}
 {
 	std::printf("UEGame...\n");
 
@@ -11,7 +11,7 @@ UEGame::UEGame() noexcept : error{ false }, id{ 0 }, handle{ nullptr }, version{
 		return;
 	}
 
-	GetWindowThreadProcessId(window, &id);
+	GetWindowThreadProcessId(window, id.getAddressOf<DWORD>());
 	if (!id) {
 		error = true;
 		return;

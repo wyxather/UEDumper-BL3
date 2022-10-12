@@ -1,6 +1,6 @@
 #include "UEEngine.h"
 
-UEEngine::UEEngine(const DWORD version[4]) noexcept : error{ false }
+UEEngine::UEEngine(const UEPointer version[4]) noexcept : error{ false }
 {
 	if (4 <= version[0]) {
 		UObject.Index = 0xC;
