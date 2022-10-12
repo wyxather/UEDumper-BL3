@@ -1,7 +1,6 @@
 #pragma once
 
 #include "UEEngine.h"
-#include <filesystem>
 
 class UEGame
 {
@@ -10,6 +9,7 @@ public:
 	virtual ~UEGame() noexcept;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return !error; }
+	[[nodiscard]] constexpr auto&& getPath() const noexcept { return path; }
 	[[nodiscard]] constexpr auto&& getVersion() const noexcept { return version; }
 
 private:
@@ -21,4 +21,5 @@ private:
 	UEPointer version[4];
 
 	std::filesystem::path path;
+	std::unique_ptr<std::byte[]> image;
 };

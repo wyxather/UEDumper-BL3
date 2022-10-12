@@ -27,4 +27,8 @@ UEDumper::~UEDumper() noexcept
 
 auto UEDumper::dump() noexcept -> void
 {
+	std::printf("Game Informations\n");
+	std::printf("Name: %ls\n", game->getPath().filename().wstring().c_str());
+	std::printf("Path: %ls\n", game->getPath().wstring().c_str());
+	std::printf("Version: %d.%d.%d.%d\n", static_cast<int>(game->getVersion()[0]), static_cast<int>(game->getVersion()[1]), static_cast<int>(game->getVersion()[2]), static_cast<int>(game->getVersion()[3]));
 }

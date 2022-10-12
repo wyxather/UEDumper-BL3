@@ -15,6 +15,12 @@ public:
 	}
 
 	template <typename T>
+	[[nodiscard]] constexpr operator T() const noexcept
+	{
+		return static_cast<T>(data);
+	}
+
+	template <typename T>
 	[[nodiscard]] constexpr operator T*() const noexcept
 	{
 		return reinterpret_cast<T*>(data);

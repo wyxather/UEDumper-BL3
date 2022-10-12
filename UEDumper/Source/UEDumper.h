@@ -18,6 +18,7 @@ public:
 	virtual void dump() noexcept;
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return error == Error::SUCCESS; }
+	[[nodiscard]] constexpr auto getError() const noexcept { return error; }
 
 private:
 	Error error;

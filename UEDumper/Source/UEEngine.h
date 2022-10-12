@@ -2,6 +2,7 @@
 
 #include "UEPointer.h"
 #include <Windows.h>
+#include <filesystem>
 
 class UEEngine
 {
