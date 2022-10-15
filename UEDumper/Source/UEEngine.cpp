@@ -87,12 +87,42 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 				UObject.Name = 0x18;
 				UObject.Outer = 0x20;
 
-				const auto namepool = "\x48\x8D\x0D????\xE8????\xC6\x05????\x01\x0F\x10\x03\x4C\x8D\x44\x24\x20\x48\x8B\xC8"; // 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05 ? ? ? ? 01 0F 10 03 4C 8D 44 24 20 48 8B C8
-				const auto gobjects = "\x48\x8B\x05????\x48\x8B\x0C\xC8\x48\x8D\x04\xD1\xEB"; // 48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1 EB
+				FNameEntry.Info = 0;
+				FNameEntry.WideBit = 0;
+				FNameEntry.LenBit = 6;
+				FNameEntry.HeaderSize = 2;
+
+				const auto namepoolPattern = "\x48\x8D\x0D????\xE8????\xC6\x05????\x01\x0F\x10\x03\x4C\x8D\x44\x24\x20\x48\x8B\xC8"; // 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05 ? ? ? ? 01 0F 10 03 4C 8D 44 24 20 48 8B C8
+				const auto gobjectsPattern = "\x48\x8B\x05????\x48\x8B\x0C\xC8\x48\x8D\x04\xD1\xEB"; // 48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1 EB
 				//both of this addresses is different from the game addresses since it's an image copy,
 				//but it's still points to the same address.
-				const auto namepoolFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), namepool) + 3);
-				const auto gobjectsFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), gobjects) + 3);
+				const auto namepoolPtr = relativeToAbsolute<UENamePool_4_27_2_0*>(findPattern(game.getImage(), namepoolPattern) + 3);
+				const auto gobjectsFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), gobjectsPattern) + 3);
+
+				for (std::uint32_t i = 0; i < namepoolPtr->currentBlock; i++) {
+
+					for (std::uint32_t j = 0; j < namepoolPtr->currentByteCursor;) {
+
+						std::uintmax_t info{};
+						if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(namepoolPtr->blocks[i]) + j), &info, FNameEntry.HeaderSize))
+							continue;
+
+						auto length = info >> FNameEntry.LenBit;
+						const auto wide = (info >> FNameEntry.WideBit) & 1;
+
+						j += FNameEntry.HeaderSize;
+
+						std::unique_ptr<std::byte[]> name = std::make_unique<decltype(name)::element_type[]>(length + 1);
+						if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(namepoolPtr->blocks[i]) + j), name.get(), length))
+							continue;
+
+						j += static_cast<decltype(j)>(length);
+						if (length % 2)
+							j++;
+
+						std::printf("%s[%jd]\n", reinterpret_cast<const char*>(name.get()), length);
+					}
+				}
 			}
 		}
 	}

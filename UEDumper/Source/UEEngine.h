@@ -25,6 +25,15 @@ public:
 
 	} UObject;
 
+	struct
+	{
+		UEPointer Info = 0;
+		UEPointer WideBit = 0;
+		UEPointer LenBit = 0;
+		UEPointer HeaderSize = 0;
+
+	} FNameEntry;
+
 private:
 	bool error;
 };
