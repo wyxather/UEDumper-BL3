@@ -67,6 +67,11 @@ namespace
 		struct { std::byte* data; } *blocks[8192]; //0x0010
 	}; //Size: 0x10010
 	static_assert(sizeof(UENamePool_4_27_2_0) == 0x10010);
+
+	class UENamePool_4_20_3_0 : public UENamePool
+	{
+	public:
+	};
 }
 
 UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
@@ -94,8 +99,7 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 
 				const auto namepoolPattern = "\x48\x8D\x0D????\xE8????\xC6\x05????\x01\x0F\x10\x03\x4C\x8D\x44\x24\x20\x48\x8B\xC8"; // 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05 ? ? ? ? 01 0F 10 03 4C 8D 44 24 20 48 8B C8
 				const auto gobjectsPattern = "\x48\x8B\x05????\x48\x8B\x0C\xC8\x48\x8D\x04\xD1\xEB"; // 48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1 EB
-				//both of this addresses is different from the game addresses since it's an image copy,
-				//but it's still points to the same address.
+	
 				const auto namepoolPtr = relativeToAbsolute<UENamePool_4_27_2_0*>(findPattern(game.getImage(), namepoolPattern) + 3);
 				const auto gobjectsFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), gobjectsPattern) + 3);
 
@@ -123,6 +127,19 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 						std::printf("%s[%jd]\n", reinterpret_cast<const char*>(name.get()), length);
 					}
 				}
+			}
+		}
+		else if (20 <= version[1]) {
+			if (3 <= version[2]) {
+
+				// Game List
+				// 1. Borderlands 3 (Epig Games)
+
+				const auto namepoolPattern = "\x48\x83\xEC\x28\x48\x8B\x05????\x48\x85\xC0\x75?\xB9??\x00\x00\x48\x89\x5C\x24\x20\xE8"; // 48 83 EC 28 48 8B 05 ?  ?  ?  ?  48 85 C0 75 ?  B9 ?  ?  00 00 48 89 5C 24 20 E8
+				const auto gobjectsPattern = "\x48\x8B\x0D????\x48\x98\x4C\x8B\x04\xD1\x48\x8D\x0C\x40\x49\x8D\x04\xC8\xEB"; // 48 8B 0D ? ? ? ? 48 98 4C 8B 04 D1 48 8D 0C 40 49 8D 04 C8 EB
+			
+				const auto namepoolPtr = relativeToAbsolute<UENamePool_4_20_3_0*>(findPattern(game.getImage(), namepoolPattern) + 7);
+				const auto gobjectsFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), gobjectsPattern) + 3);
 			}
 		}
 	}
