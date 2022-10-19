@@ -71,7 +71,21 @@ namespace
 	class UENamePool_4_20_3_0 : public UENamePool
 	{
 	public:
-	};
+		struct Entry {
+			std::uint64_t index; //0x0000
+			Entry* next; //0x0008
+			std::uint8_t name[1024]; //0x0010
+		}; //Size: 0x0410
+		static_assert(sizeof(Entry) == 0x410);
+
+		struct Block {
+			Entry* entry[16385]; //0x0000
+		}; //Size: 0x20008
+		static_assert(sizeof(Block) == 0x20008);
+
+		Block* blocks[35]; //0x0000
+	}; //Size: 0x0118
+	static_assert(sizeof(UENamePool_4_20_3_0) == 0x118);
 }
 
 UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
@@ -133,13 +147,37 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 			if (3 <= version[2]) {
 
 				// Game List
-				// 1. Borderlands 3 (Epig Games)
+				// 1. Borderlands 3 (Epic Games)
 
-				const auto namepoolPattern = "\x48\x83\xEC\x28\x48\x8B\x05????\x48\x85\xC0\x75?\xB9??\x00\x00\x48\x89\x5C\x24\x20\xE8"; // 48 83 EC 28 48 8B 05 ?  ?  ?  ?  48 85 C0 75 ?  B9 ?  ?  00 00 48 89 5C 24 20 E8
+				// TO DO: move some variables allocation to heap.
+
+				const auto namepoolPattern = "\x48\x83\xEC\x28\x48\x8B\x05????\x48\x85\xC0\x75?\xB9????\x48\x89\x5C\x24\x20\xE8"; // 48 83 EC 28 48 8B 05 ? ? ? ? 48 85 C0 75 ? B9 ? ? ? ? 48 89 5C 24 20 E8
 				const auto gobjectsPattern = "\x48\x8B\x0D????\x48\x98\x4C\x8B\x04\xD1\x48\x8D\x0C\x40\x49\x8D\x04\xC8\xEB"; // 48 8B 0D ? ? ? ? 48 98 4C 8B 04 D1 48 8D 0C 40 49 8D 04 C8 EB
 			
-				const auto namepoolPtr = relativeToAbsolute<UENamePool_4_20_3_0*>(findPattern(game.getImage(), namepoolPattern) + 7);
+				UENamePool_4_20_3_0 namePool;
+				if (!game.read(*relativeToAbsolute<UENamePool_4_20_3_0**>(findPattern(game.getImage(), namepoolPattern) + 7), &namePool, sizeof(namePool))) {
+					error = true;
+					return;
+				}
+
 				const auto gobjectsFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), gobjectsPattern) + 3);
+
+				for (std::size_t i = 0; i < (sizeof(namePool.blocks) / sizeof(namePool.blocks[0])); i++) {
+
+					UENamePool_4_20_3_0::Block block;
+					if (!game.read(namePool.blocks[i], &block, sizeof(block)))
+						continue;
+
+					for (std::size_t j = 0; j < (sizeof(block.entry) / sizeof(block.entry[0])); j++) {
+
+						UENamePool_4_20_3_0::Entry entry;
+						if (!game.read(block.entry[j], &entry, sizeof(entry)))
+							continue;
+
+						// TO DO: FIX ME! ends till j == 8622 ([0000021D456DE1E8][0008A1AE] GenericWeaponFiredDamageSource), next entry should be ([0008A28B] HeavyWeapon)
+						std::printf("[%p][%08X] %s\n", reinterpret_cast<void*>(block.entry[j]), static_cast<std::uint32_t>(entry.index / 2), entry.name);
+					}
+				}
 			}
 		}
 	}
