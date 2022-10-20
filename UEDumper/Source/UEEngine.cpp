@@ -79,9 +79,9 @@ namespace
 		static_assert(sizeof(Entry) == 0x410);
 
 		struct Block {
-			Entry* entry[16385]; //0x0000
-		}; //Size: 0x20008
-		static_assert(sizeof(Block) == 0x20008);
+			Entry* entry[16384]; //0x0000
+		}; //Size: 0x20000
+		static_assert(sizeof(Block) == 0x20000);
 
 		Block* blocks[35]; //0x0000
 	}; //Size: 0x0118
@@ -172,7 +172,6 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 						if (!game.read(block->entry[j], entry.get(), sizeof(decltype(entry)::element_type)))
 							continue;
 
-						// TO DO: FIX ME! ends till j == 8622 ([0000021D456DE1E8][0008A1AE] GenericWeaponFiredDamageSource), next entry should be ([0008A28B] HeavyWeapon)
 						std::printf("[%p][%08X] %s\n", reinterpret_cast<void*>(block->entry[j]), static_cast<std::uint32_t>(entry->index / 2), entry->name);
 					}
 				}
