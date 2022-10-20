@@ -121,7 +121,7 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 
 					for (std::uint32_t j = 0; j < namepoolPtr->currentByteCursor;) {
 
-						std::uintmax_t info{};
+						std::size_t info{};
 						if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(namepoolPtr->blocks[i]) + j), &info, FNameEntry.HeaderSize))
 							continue;
 
@@ -138,7 +138,7 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 						if (length % 2)
 							j++;
 
-						std::printf("%s[%jd]\n", reinterpret_cast<const char*>(name.get()), length);
+						std::printf("%s[%zd]\n", reinterpret_cast<const char*>(name.get()), length);
 					}
 				}
 			}
@@ -149,33 +149,31 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 				// Game List
 				// 1. Borderlands 3 (Epic Games)
 
-				// TO DO: move some variables allocation to heap.
-
 				const auto namepoolPattern = "\x48\x83\xEC\x28\x48\x8B\x05????\x48\x85\xC0\x75?\xB9????\x48\x89\x5C\x24\x20\xE8"; // 48 83 EC 28 48 8B 05 ? ? ? ? 48 85 C0 75 ? B9 ? ? ? ? 48 89 5C 24 20 E8
 				const auto gobjectsPattern = "\x48\x8B\x0D????\x48\x98\x4C\x8B\x04\xD1\x48\x8D\x0C\x40\x49\x8D\x04\xC8\xEB"; // 48 8B 0D ? ? ? ? 48 98 4C 8B 04 D1 48 8D 0C 40 49 8D 04 C8 EB
 			
-				UENamePool_4_20_3_0 namePool;
-				if (!game.read(*relativeToAbsolute<UENamePool_4_20_3_0**>(findPattern(game.getImage(), namepoolPattern) + 7), &namePool, sizeof(namePool))) {
+				std::unique_ptr<UENamePool_4_20_3_0> namePool = std::make_unique<decltype(namePool)::element_type>();
+				if (!game.read(*relativeToAbsolute<UENamePool_4_20_3_0**>(findPattern(game.getImage(), namepoolPattern) + 7), namePool.get(), sizeof(decltype(namePool)::element_type))) {
 					error = true;
 					return;
 				}
 
 				const auto gobjectsFakeAddy = relativeToAbsolute<std::uintptr_t*>(findPattern(game.getImage(), gobjectsPattern) + 3);
 
-				for (std::size_t i = 0; i < (sizeof(namePool.blocks) / sizeof(namePool.blocks[0])); i++) {
+				for (std::size_t i = 0; i < (sizeof(namePool->blocks) / sizeof(namePool->blocks[0])); i++) {
 
-					UENamePool_4_20_3_0::Block block;
-					if (!game.read(namePool.blocks[i], &block, sizeof(block)))
+					std::unique_ptr<UENamePool_4_20_3_0::Block> block = std::make_unique<decltype(block)::element_type>();
+					if (!game.read(namePool->blocks[i], block.get(), sizeof(decltype(block)::element_type)))
 						continue;
 
-					for (std::size_t j = 0; j < (sizeof(block.entry) / sizeof(block.entry[0])); j++) {
+					for (std::size_t j = 0; j < (sizeof(block->entry) / sizeof(block->entry[0])); j++) {
 
-						UENamePool_4_20_3_0::Entry entry;
-						if (!game.read(block.entry[j], &entry, sizeof(entry)))
+						std::unique_ptr<UENamePool_4_20_3_0::Entry> entry = std::make_unique<decltype(entry)::element_type>();
+						if (!game.read(block->entry[j], entry.get(), sizeof(decltype(entry)::element_type)))
 							continue;
 
 						// TO DO: FIX ME! ends till j == 8622 ([0000021D456DE1E8][0008A1AE] GenericWeaponFiredDamageSource), next entry should be ([0008A28B] HeavyWeapon)
-						std::printf("[%p][%08X] %s\n", reinterpret_cast<void*>(block.entry[j]), static_cast<std::uint32_t>(entry.index / 2), entry.name);
+						std::printf("[%p][%08X] %s\n", reinterpret_cast<void*>(block->entry[j]), static_cast<std::uint32_t>(entry->index / 2), entry->name);
 					}
 				}
 			}
