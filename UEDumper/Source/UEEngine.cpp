@@ -53,10 +53,41 @@ namespace
 		return (T)(address + sizeof(std::uint32_t) + *reinterpret_cast<std::uint32_t*>(address));
 	}
 
+	class UEObjectArray
+	{
+	public:
+	};
+
 	class UENamePool
 	{
 	public:
 	};
+
+	class UEObjectArray_4_27_2_0 : public UEObjectArray
+	{
+	public:
+		struct UObject {
+			char pad_0000[264]; //0x0000
+		}; //Size: 0x0108
+		static_assert(sizeof(UObject) == 0x108);
+
+		struct FUObjectItem {
+			UObject* object; //0x0000
+			std::int32_t flags; //0x0008
+			std::int32_t clusterRootIndex; //0x000C
+			std::int32_t serialNumber; //0x0010
+			char pad_0014[4]; //0x0014
+		}; //Size: 0x0018
+		static_assert(sizeof(FUObjectItem) == 0x18);
+
+		FUObjectItem(*objects)[65536]; //0x0000
+		char(*preAllocatedObjects)[8]; //0x0008
+		std::int32_t maxElements; //0x0010
+		std::int32_t numElements; //0x0014
+		std::int32_t maxChunks; //0x0018
+		std::int32_t numChunks; //0x001C
+	}; //Size: 0x0020
+	static_assert(sizeof(UEObjectArray_4_27_2_0) == 0x20);
 
 	class UENamePool_4_27_2_0 : public UENamePool
 	{
