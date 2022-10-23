@@ -16,6 +16,8 @@ public:
 
 	[[nodiscard]] constexpr operator bool() const noexcept { return !error; }
 
+	UEPointer Stride = 0;
+
 	struct
 	{
 		UEPointer Index = 0;

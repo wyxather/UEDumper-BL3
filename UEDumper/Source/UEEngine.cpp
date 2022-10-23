@@ -53,33 +53,113 @@ namespace
 		return (T)(address + sizeof(std::uint32_t) + *reinterpret_cast<std::uint32_t*>(address));
 	}
 
-	class UEObjectArray
-	{
-	public:
-		explicit UEObjectArray(const std::size_t size) noexcept
-		{
-			std::memset(this, 0, size);
-		}
-	};
+	class UENamePool {};
+	class UEObjectArray {};
 
-	class UENamePool
+	class UENamePool_4_27_2_0 : public UENamePool
 	{
 	public:
-		explicit UENamePool(const std::size_t size) noexcept
+		struct Block
 		{
-			std::memset(this, 0, size);
+			std::byte* data;
+		};
+
+		explicit UENamePool_4_27_2_0(const UEGame& game, std::string_view pattern, const std::ptrdiff_t offset) noexcept
+		{
+			std::memset(this, 0, sizeof(*this));
+			const auto names = relativeToAbsolute<decltype(this)>(findPattern(game.getImage(), pattern) + offset);
+			currentBlock = names->currentBlock;
+			currentByteCursor = names->currentByteCursor;
+			std::memcpy(blocks, names->blocks, names->currentBlock * sizeof(std::uintptr_t));
 		}
-	};
+
+		auto print(const UEGame& game, const UEEngine& engine) const noexcept
+		{
+			for (std::uint32_t block = 0; block < currentBlock; block++)
+				for (std::uint32_t cursor = 0; cursor < currentByteCursor;)
+					if (!print(game, engine, block, cursor))
+						break;
+		}
+
+		[[nodiscard]] auto print(const UEGame& game, const UEEngine& engine, const std::uint32_t block, std::uint32_t& cursor) const noexcept -> bool
+		{
+			std::size_t info{};
+			if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(blocks[block]) + cursor), &info, engine.FNameEntry.HeaderSize))
+				return false;
+
+			const auto length = info >> engine.FNameEntry.LenBit;
+			const auto wide = (info >> engine.FNameEntry.WideBit) & 1;
+
+			cursor += engine.FNameEntry.HeaderSize;
+
+			std::unique_ptr<std::byte[]> name = std::make_unique<decltype(name)::element_type[]>(length + 1);
+			if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(blocks[block]) + cursor), name.get(), length))
+				return false;
+
+			cursor += static_cast<std::remove_reference_t<decltype(cursor)>>(length);
+			if (length % 2)
+				cursor++;
+
+			const auto offset = cursor / engine.Stride;
+			const auto index = (block << 16 | offset);
+
+			if (wide)
+				std::printf("[%08X] %ls\n", index, reinterpret_cast<const wchar_t*>(name.get()));
+			else
+				std::printf("[%08X] %s\n", index, reinterpret_cast<const char*>(name.get()));
+
+			return true;
+		}
+
+		[[nodiscard]] auto print(const UEGame& game, const UEEngine& engine, const std::uint32_t id) const noexcept
+		{
+			const auto offset = id & 65535;
+			auto cursor = offset * engine.Stride;
+			return print(game, engine, id >> 16, cursor);
+		}
+
+		[[nodiscard]] auto get(const UEGame& game, const UEEngine& engine, const std::uint32_t block, std::uint32_t& cursor) const noexcept -> std::unique_ptr<std::byte[]>
+		{
+			std::unique_ptr<std::byte[]> name;
+
+			std::size_t info{};
+			if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(blocks[block]) + cursor), &info, engine.FNameEntry.HeaderSize))
+				return name;
+
+			const auto length = info >> engine.FNameEntry.LenBit;
+			const auto wide = (info >> engine.FNameEntry.WideBit) & 1;
+
+			cursor += engine.FNameEntry.HeaderSize;
+
+			name = std::make_unique<decltype(name)::element_type[]>(length + 1);
+			if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(blocks[block]) + cursor), name.get(), length))
+				return name;
+
+			cursor += static_cast<std::remove_reference_t<decltype(cursor)>>(length);
+			if (length % 2)
+				cursor++;
+
+			return name;
+		}
+
+		[[nodiscard]] auto get(const UEGame& game, const UEEngine& engine, const std::uint32_t id) const noexcept
+		{
+			const auto offset = id & 65535;
+			auto cursor = offset * engine.Stride;
+			return get(game, engine, id >> 16, cursor);
+		}
+
+		std::byte lock[8]; //0x0000
+		std::uint32_t currentBlock; //0x0008
+		std::uint32_t currentByteCursor; //0x000C
+		Block *blocks[8192]; //0x0010
+
+	}; //Size: 0x10010
+	static_assert(sizeof(UENamePool_4_27_2_0) == 0x10010);
 
 	class UEObjectArray_4_27_2_0 : public UEObjectArray
 	{
 	public:
-		explicit UEObjectArray_4_27_2_0(const UEGame& game, std::string_view pattern, const std::ptrdiff_t offset) noexcept : UEObjectArray{ sizeof(*this) }
-		{
-			const auto objects = *relativeToAbsolute<decltype(this)*>(findPattern(game.getImage(), pattern) + offset);
-			static_cast<void>(game.read(objects, this, sizeof(*this)));
-		}
-
 		struct UEClass {};
 
 		struct UObject
@@ -113,7 +193,14 @@ namespace
 		std::int32_t maxChunks; //0x0018
 		std::int32_t numChunks; //0x001C
 
-		auto print(const UEGame& game) noexcept
+		explicit UEObjectArray_4_27_2_0(const UEGame& game, std::string_view pattern, const std::ptrdiff_t offset) noexcept
+		{
+			std::memset(this, 0, sizeof(*this));
+			const auto objects = *relativeToAbsolute<decltype(this)*>(findPattern(game.getImage(), pattern) + offset);
+			static_cast<void>(game.read(objects, this, sizeof(*this)));
+		}
+
+		auto print(const UEGame& game, const UEEngine& engine, const UENamePool_4_27_2_0& names) const noexcept
 		{
 			for (std::size_t i = 0; i < 65536; i++) {
 
@@ -128,73 +215,16 @@ namespace
 				if (!game.read(item->object, object.get(), sizeof(decltype(object)::element_type)))
 					continue;
 
-				std::printf("[%08X] %p\n", object->internalIndex, item->object);
+				std::printf("[%08X] %p %s\n", object->internalIndex, item->object, reinterpret_cast<const char*>(names.get(game, engine, object->namePrivate).get()));
 			}
 		}
 
 	}; //Size: 0x0020
 	static_assert(sizeof(UEObjectArray_4_27_2_0) == 0x20);
 
-	class UENamePool_4_27_2_0 : public UENamePool
-	{
-	public:
-		explicit UENamePool_4_27_2_0(const UEGame& game, std::string_view pattern, const std::ptrdiff_t offset) noexcept : UENamePool{ sizeof(*this) }
-		{
-			const auto names = relativeToAbsolute<decltype(this)>(findPattern(game.getImage(), pattern) + offset);
-			currentBlock = names->currentBlock;
-			currentByteCursor = names->currentByteCursor;
-			std::memcpy(blocks, names->blocks, names->currentBlock * sizeof(std::uintptr_t));
-		}
-
-		struct Block
-		{
-			std::byte* data;
-		};
-
-		auto print(const UEGame& game, const UEEngine& engine) noexcept
-		{
-			for (std::uint32_t i = 0; i < currentBlock; i++) {
-
-				for (std::uint32_t j = 0; j < currentByteCursor;) {
-
-					std::size_t info{};
-					if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(blocks[i]) + j), &info, engine.FNameEntry.HeaderSize))
-						continue;
-
-					auto length = info >> engine.FNameEntry.LenBit;
-					const auto wide = (info >> engine.FNameEntry.WideBit) & 1;
-
-					j += engine.FNameEntry.HeaderSize;
-
-					std::unique_ptr<std::byte[]> name = std::make_unique<decltype(name)::element_type[]>(length + 1);
-					if (!game.read(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(blocks[i]) + j), name.get(), length))
-						continue;
-
-					j += static_cast<decltype(j)>(length);
-					if (length % 2)
-						j++;
-
-					std::printf("%s[%zd]\n", reinterpret_cast<const char*>(name.get()), length);
-				}
-			}
-		}
-
-		std::byte lock[8]; //0x0000
-		std::uint32_t currentBlock; //0x0008
-		std::uint32_t currentByteCursor; //0x000C
-		Block *blocks[8192]; //0x0010
-
-	}; //Size: 0x10010
-	static_assert(sizeof(UENamePool_4_27_2_0) == 0x10010);
-
 	class UENamePool_4_20_3_0 : public UENamePool
 	{
 	public:
-		explicit UENamePool_4_20_3_0(const UEGame& game, std::string_view pattern, const std::ptrdiff_t offset) noexcept : UENamePool{ sizeof(*this) }
-		{
-			static_cast<void>(game.read(*relativeToAbsolute<decltype(this)*>(findPattern(game.getImage(), pattern) + offset), this, sizeof(*this)));
-		}
-
 		struct Entry
 		{
 			std::uint64_t index; //0x0000
@@ -211,7 +241,13 @@ namespace
 		}; //Size: 0x20000
 		static_assert(sizeof(Block) == 0x20000);
 
-		auto print(const UEGame& game) noexcept
+		explicit UENamePool_4_20_3_0(const UEGame& game, std::string_view pattern, const std::ptrdiff_t offset) noexcept
+		{
+			std::memset(this, 0, sizeof(*this));
+			static_cast<void>(game.read(*relativeToAbsolute<decltype(this)*>(findPattern(game.getImage(), pattern) + offset), this, sizeof(*this)));
+		}
+
+		auto print(const UEGame& game) const noexcept
 		{
 			for (std::size_t i = 0; i < (sizeof(blocks) / sizeof(blocks[0])); i++) {
 
@@ -249,6 +285,8 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 				// Game List:
 				// 1. Prometheus / Omega Strike (Steam)
 
+				Stride = 2;
+
 				UObject.Index = 0xC;
 				UObject.Class = 0x10;
 				UObject.Name = 0x18;
@@ -259,13 +297,11 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 				FNameEntry.LenBit = 6;
 				FNameEntry.HeaderSize = 2;
 
-				std::unique_ptr<UEObjectArray_4_27_2_0> objects = std::make_unique<decltype(objects)::element_type>(game, "\x48\x8B\x05????\x48\x8B\x0C\xC8\x48\x8D\x04\xD1\xEB", 3); // 48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1 EB
-				objects->print(game);
-				objects.reset();
-
 				std::unique_ptr<UENamePool_4_27_2_0> names = std::make_unique<decltype(names)::element_type>(game, "\x48\x8D\x0D????\xE8????\xC6\x05????\x01\x0F\x10\x03\x4C\x8D\x44\x24\x20\x48\x8B\xC8", 3); // 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05 ? ? ? ? 01 0F 10 03 4C 8D 44 24 20 48 8B C8
 				names->print(game, *this);
-				names.reset();
+
+				std::unique_ptr<UEObjectArray_4_27_2_0> objects = std::make_unique<decltype(objects)::element_type>(game, "\x48\x8B\x05????\x48\x8B\x0C\xC8\x48\x8D\x04\xD1\xEB", 3); // 48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1 EB
+				objects->print(game, *this, *names.get());
 			}
 		}
 		else if (20 <= version[1]) {
@@ -279,7 +315,6 @@ UEEngine::UEEngine(const UEGame& game) noexcept : error{ false }
 
 				std::unique_ptr<UENamePool_4_20_3_0> names = std::make_unique<decltype(names)::element_type>(game, "\x48\x83\xEC\x28\x48\x8B\x05????\x48\x85\xC0\x75?\xB9????\x48\x89\x5C\x24\x20\xE8", 7); // 48 83 EC 28 48 8B 05 ? ? ? ? 48 85 C0 75 ? B9 ? ? ? ? 48 89 5C 24 20 E8
 				names->print(game);
-				names.reset();
 			}
 		}
 	}
