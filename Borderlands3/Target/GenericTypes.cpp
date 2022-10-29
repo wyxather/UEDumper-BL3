@@ -379,7 +379,12 @@ UEClass UEObjectPropertyBase::StaticClass()
 //---------------------------------------------------------------------------
 UEProperty::Info UEObjectProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::Primitive, sizeof(void*), false, "class " + MakeValidName(GetPropertyClass().GetNameCPP()) + "*");
+	const auto propertyClass = GetPropertyClass();
+
+	if (propertyClass == nullptr)
+		return Info::Create(PropertyType::Primitive, sizeof(void*), false, "void*");
+
+	return Info::Create(PropertyType::Primitive, sizeof(void*), false, "class " + MakeValidName(propertyClass.GetNameCPP()) + "*");
 }
 //---------------------------------------------------------------------------
 UEClass UEObjectProperty::StaticClass()
@@ -397,7 +402,12 @@ UEClass UEClassProperty::GetMetaClass() const
 //---------------------------------------------------------------------------
 UEProperty::Info UEClassProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::Primitive, sizeof(void*), false, "class " + MakeValidName(GetMetaClass().GetNameCPP()) + "*");
+	const auto metaClass = GetMetaClass();
+
+	if (metaClass == nullptr)
+		return Info::Create(PropertyType::Primitive, sizeof(void*), false, "void*");
+
+	return Info::Create(PropertyType::Primitive, sizeof(void*), false, "class " + MakeValidName(metaClass.GetNameCPP()) + "*");
 }
 //---------------------------------------------------------------------------
 UEClass UEClassProperty::StaticClass()
@@ -415,7 +425,12 @@ UEClass UEInterfaceProperty::GetInterfaceClass() const
 //---------------------------------------------------------------------------
 UEProperty::Info UEInterfaceProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::PredefinedStruct, sizeof(FScriptInterface), true, "TScriptInterface<class " + MakeValidName(GetInterfaceClass().GetNameCPP()) + ">");
+	const auto interfaceClass = GetInterfaceClass();
+
+	if (interfaceClass == nullptr)
+		return Info::Create(PropertyType::PredefinedStruct, sizeof(FScriptInterface), true, "TScriptInterface<void>");
+
+	return Info::Create(PropertyType::PredefinedStruct, sizeof(FScriptInterface), true, "TScriptInterface<class " + MakeValidName(interfaceClass.GetNameCPP()) + ">");
 }
 //---------------------------------------------------------------------------
 UEClass UEInterfaceProperty::StaticClass()
@@ -428,7 +443,12 @@ UEClass UEInterfaceProperty::StaticClass()
 //---------------------------------------------------------------------------
 UEProperty::Info UEWeakObjectProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::Container, sizeof(FWeakObjectPtr), false, "TWeakObjectPtr<class " + MakeValidName(GetPropertyClass().GetNameCPP()) + ">");
+	const auto propertyClass = GetPropertyClass();
+
+	if (propertyClass == nullptr)
+		return Info::Create(PropertyType::Container, sizeof(FWeakObjectPtr), false, "TWeakObjectPtr<void>");
+
+	return Info::Create(PropertyType::Container, sizeof(FWeakObjectPtr), false, "TWeakObjectPtr<class " + MakeValidName(propertyClass.GetNameCPP()) + ">");
 }
 //---------------------------------------------------------------------------
 UEClass UEWeakObjectProperty::StaticClass()
@@ -441,7 +461,12 @@ UEClass UEWeakObjectProperty::StaticClass()
 //---------------------------------------------------------------------------
 UEProperty::Info UELazyObjectProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::Container, sizeof(FLazyObjectPtr), false, "TLazyObjectPtr<class " + MakeValidName(GetPropertyClass().GetNameCPP()) + ">");
+	const auto propertyClass = GetPropertyClass();
+
+	if (propertyClass == nullptr)
+		return Info::Create(PropertyType::Container, sizeof(FLazyObjectPtr), false, "TLazyObjectPtr<void>");
+
+	return Info::Create(PropertyType::Container, sizeof(FLazyObjectPtr), false, "TLazyObjectPtr<class " + MakeValidName(propertyClass.GetNameCPP()) + ">");
 }
 //---------------------------------------------------------------------------
 UEClass UELazyObjectProperty::StaticClass()
@@ -454,7 +479,12 @@ UEClass UELazyObjectProperty::StaticClass()
 //---------------------------------------------------------------------------
 UEProperty::Info UEAssetObjectProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::Container, sizeof(FAssetPtr), false, "TAssetPtr<class " + MakeValidName(GetPropertyClass().GetNameCPP()) + ">");
+	const auto propertyClass = GetPropertyClass();
+
+	if (propertyClass == nullptr)
+		return Info::Create(PropertyType::Container, sizeof(FAssetPtr), false, "TAssetPtr<void>");
+
+	return Info::Create(PropertyType::Container, sizeof(FAssetPtr), false, "TAssetPtr<class " + MakeValidName(propertyClass.GetNameCPP()) + ">");
 }
 //---------------------------------------------------------------------------
 UEClass UEAssetObjectProperty::StaticClass()
@@ -485,7 +515,12 @@ UEClass UEAssetClassProperty::StaticClass()
 //---------------------------------------------------------------------------
 UEProperty::Info UESoftObjectProperty::GetInfo() const
 {
-	return Info::Create(PropertyType::Container, sizeof(FSoftObjectPtr), false, "TSoftObjectPtr<class " + MakeValidName(GetPropertyClass().GetNameCPP()) + ">");
+	const auto propertyClass = GetPropertyClass();
+
+	if (propertyClass == nullptr)
+		return Info::Create(PropertyType::Container, sizeof(FSoftObjectPtr), false, "TSoftObjectPtr<void>");
+
+	return Info::Create(PropertyType::Container, sizeof(FSoftObjectPtr), false, "TSoftObjectPtr<class " + MakeValidName(propertyClass.GetNameCPP()) + ">");
 }
 //---------------------------------------------------------------------------
 UEClass UESoftObjectProperty::StaticClass()

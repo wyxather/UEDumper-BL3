@@ -200,22 +200,27 @@ void ProcessPackages(const fs::path& path)
 	for (auto obj : packageObjects)
 	{
 		Package package(obj);
-
-		printf("Processing %s", package.GetName().c_str());
 		package.Process(processedObjects);
 
-		if (package.Save(sdkPath)) {
+		if (package.Save(sdkPath))
 			packages.emplace_back(std::move(package));
-			printf(" [DONE]\n");
-		}
-		else printf("\n");
 	}
 
 	SaveSDKHeader(path, processedObjects, packages);
 }
 
+[[noreturn]] VOID WINAPI Unload(LPVOID lpParameter)
+{
+	Sleep(1000);
+	FreeLibraryAndExitThread((HMODULE)lpParameter, EXIT_SUCCESS);
+}
+
 DWORD WINAPI OnAttach(LPVOID lpParameter)
 {
+	const auto Return = [lpParameter]() noexcept {
+		CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)Unload, lpParameter, 0, nullptr);
+	};
+
 	struct Console
 	{
 		Console()
@@ -239,17 +244,20 @@ DWORD WINAPI OnAttach(LPVOID lpParameter)
 	if (!ObjectsStore::Initialize())
 	{
 		MessageBoxA(nullptr, "ObjectsStore::Initialize failed", "Error", 0);
+		Return();
 		return -1;
 	}
 	if (!NamesStore::Initialize())
 	{
 		MessageBoxA(nullptr, "NamesStore::Initialize failed", "Error", 0);
+		Return();
 		return -1;
 	}
 
 	if (!generator->Initialize(lpParameter))
 	{
 		MessageBoxA(nullptr, "Initialize failed", "Error", 0);
+		Return();
 		return -1;
 	}
 
@@ -260,6 +268,7 @@ DWORD WINAPI OnAttach(LPVOID lpParameter)
 		if (GetModuleFileNameA(static_cast<HMODULE>(lpParameter), buffer, sizeof(buffer)) == 0)
 		{
 			MessageBoxA(nullptr, "GetModuleFileName failed", "Error", 0);
+			Return();
 			return -1;
 		}
 
@@ -289,6 +298,7 @@ DWORD WINAPI OnAttach(LPVOID lpParameter)
 
 	MessageBoxA(nullptr, "Finished!", "Info", 0);
 
+	Return();
 	return 0;
 }
 
