@@ -200,6 +200,7 @@ void ProcessPackages(const fs::path& path)
 	for (auto obj : packageObjects)
 	{
 		Package package(obj);
+
 		package.Process(processedObjects);
 
 		if (package.Save(sdkPath))
