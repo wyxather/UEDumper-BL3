@@ -14,13 +14,13 @@ public:
 		};
 
 		virtualFunctionPattern["Class CoreUObject.Object"] = {
-			{ "\x44\x88\x7D\x00\x48\x89", "xxxxxx", 0x400, R"(	inline void ProcessEvent(class UFunction* function, void* parms)
+			{ "\x44\x88\x7D\x00\x48\x89", "xxxxxx", 0x400, R"(	constexpr auto ProcessEvent(class UFunction* function, void* parms) noexcept
 	{
 		return GetVFunction<void(*)(UObject*, class UFunction*, void*)>(this, %d)(this, function, parms);
 	})" }
 		};
 		virtualFunctionPattern["Class CoreUObject.Class"] = {
-			{ "\x4C\x8B\xDC\x57\x48\x81\xEC", "xxxxxxx", 0x200, R"(	inline UObject* CreateDefaultObject()
+			{ "\x4C\x8B\xDC\x57\x48\x81\xEC", "xxxxxxx", 0x200, R"(	constexpr auto CreateDefaultObject() noexcept
 	{
 		return GetVFunction<UObject*(*)(UClass*)>(this, %d)(this);
 	})" }
@@ -152,9 +152,6 @@ public:
 	{
 		return static_cast<T*>(GetGlobalObjects().GetByIndex(index).Object);
 	})"),
-			PredefinedMethod::Inline(R"(	static constexpr auto ProcessEvent(void*, void*) noexcept
-	{
-	})"),
 			PredefinedMethod::Default("[[nodiscard]] auto GetName() const noexcept -> std::string",
 			R"(auto UObject::GetName() const noexcept -> std::string
 {
@@ -247,11 +244,11 @@ public:
 
 	std::string GetBasicDeclarations() const override
 	{
-		return R"(template<typename Fn>
-inline Fn GetVFunction(const void *instance, std::size_t index)
+		return R"(template <typename T>
+constexpr auto GetVFunction(const void *instance, std::size_t index) noexcept -> T
 {
-	auto vtable = *reinterpret_cast<const void***>(const_cast<void*>(instance));
-	return reinterpret_cast<Fn>(vtable[index]);
+	const auto vtable = *reinterpret_cast<const void***>(const_cast<void*>(instance));
+	return reinterpret_cast<T>(vtable[index]);
 }
 
 class FNameEntry
