@@ -244,7 +244,13 @@ public:
 
 	std::string GetBasicDeclarations() const override
 	{
-		return R"(template <typename T>
+		return R"(template <typename T, typename K>
+constexpr auto Cast(K* object) noexcept
+{
+	return static_cast<T*>(object);
+}
+
+template <typename T>
 constexpr auto GetVFunction(const void *instance, std::size_t index) noexcept -> T
 {
 	const auto vtable = *reinterpret_cast<const void***>(const_cast<void*>(instance));
