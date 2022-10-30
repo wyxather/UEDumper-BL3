@@ -58,19 +58,19 @@ public:
 		};
 
 		predefinedMethods["ScriptStruct CoreUObject.Vector2D"] = {
-			PredefinedMethod::Inline(R"(	inline FVector2D()
+			PredefinedMethod::Inline(R"(	constexpr FVector2D() noexcept
 		: X(0), Y(0)
 	{ })"),
-			PredefinedMethod::Inline(R"(	inline FVector2D(float x, float y)
+			PredefinedMethod::Inline(R"(	constexpr FVector2D(float x, float y) noexcept
 		: X(x),
 		  Y(y)
 	{ })")
 		};
 		predefinedMethods["ScriptStruct CoreUObject.LinearColor"] = {
-			PredefinedMethod::Inline(R"(	inline FLinearColor()
+			PredefinedMethod::Inline(R"(	constexpr FLinearColor() noexcept
 		: R(0), G(0), B(0), A(0)
 	{ })"),
-			PredefinedMethod::Inline(R"(	inline FLinearColor(float r, float g, float b, float a)
+			PredefinedMethod::Inline(R"(	constexpr FLinearColor(float r, float g, float b, float a) noexcept
 		: R(r),
 		  G(g),
 		  B(b),
@@ -218,45 +218,128 @@ inline Fn GetVFunction(const void *instance, std::size_t index)
 	return reinterpret_cast<Fn>(vtable[index]);
 }
 
-template<class T>
-class TArray
+class FNameEntry
 {
-	friend class FString;
-
 public:
-	constexpr TArray() noexcept
+	[[nodiscard]] constexpr auto GetAnsiName() const noexcept
 	{
-		Data = nullptr;
-		Count = Max = 0;
-	};
+		return AnsiName;
 
-	constexpr auto Num() const noexcept
-	{
-		return Count;
-	};
+	}
 
-	constexpr auto& operator[](std::int32_t i) noexcept
+	[[nodiscard]] constexpr auto GetWideName() const noexcept
 	{
-		return Data[i];
-	};
-
-	constexpr const auto& operator[](std::int32_t i) const noexcept
-	{
-		return Data[i];
-	};
-
-	consetxpr auto IsValidIndex(std::int32_t i) const noexcept
-	{
-		return i < Num();
+		return WideName;
 	}
 
 private:
-	T* Data;
-	std::int32_t Count;
-	std::int32_t Max;
+	std::int32_t Index; //0x0000
+	char pad_0004[4]; //0x0004
+	class FNameEntry* HashNext; //0x0008
+
+	union //0x0010
+	{
+		char AnsiName[1024];
+		wchar_t WideName[1024];
+	};
 };
 
-class UObject;
+class TNameEntryArray
+{
+	enum
+	{
+		ElementsPerChunk = 16 * 1024,
+		ChunkTableSize = (2 * 1024 * 1024 + ElementsPerChunk - 1) / ElementsPerChunk
+	};
+
+	[[nodiscard]] constexpr auto GetItemPtr(std::size_t Index) const noexcept
+	{
+		const auto ChunkIndex = Index / ElementsPerChunk;
+		const auto WithinChunkIndex = Index % ElementsPerChunk;
+		return Chunks[ChunkIndex] + WithinChunkIndex;
+	}
+
+public:
+	[[nodiscard]] constexpr auto Num() const noexcept
+	{
+		return NumElements;
+
+	}
+
+	[[nodiscard]] constexpr auto IsValidIndex(std::int32_t Index) const noexcept
+	{
+		return Index < Num() && Index >= 0;
+	}
+
+	[[nodiscard]] constexpr auto& operator[](std::int32_t Index) const noexcept
+	{
+		return *GetItemPtr(Index);
+	}
+
+private:
+	FNameEntry* const* Chunks[ChunkTableSize];
+	std::int32_t NumElements;
+	std::int32_t NumChunks;
+};
+
+struct FName
+{
+	static TNameEntryArray* GNames;
+
+	[[nodiscard]] static constexpr auto& GetGlobalNames() noexcept
+	{
+		return *GNames;
+	};
+
+	[[nodiscard]] constexpr auto GetName() const noexcept
+	{
+		return GetGlobalNames()[ComparisonIndex]->GetAnsiName();
+	};
+
+	[[nodiscard]] constexpr auto operator==(const FName& other) const noexcept
+	{
+		return ComparisonIndex == other.ComparisonIndex;
+	};
+
+	std::int32_t ComparisonIndex;
+	std::int32_t Number;
+
+	constexpr FName() noexcept :
+		ComparisonIndex(0),
+		Number(0)
+	{
+	};
+
+	constexpr FName(std::int32_t i) noexcept :
+		ComparisonIndex(i),
+		Number(0)
+	{
+	};
+
+	FName(const char* nameToFind) noexcept :
+		ComparisonIndex(0),
+		Number(0)
+	{
+		static std::unordered_set<std::int32_t> cache;
+
+		for (auto i : cache) {
+			if (!std::strcmp(GetGlobalNames()[i]->GetAnsiName(), nameToFind)) {
+				ComparisonIndex = i;
+				return;
+			}
+		}
+
+		for (decltype(GetGlobalNames().Num()) i = 0, max = GetGlobalNames().Num(); i < max; ++i) {
+			if (GetGlobalNames()[i] != nullptr) {
+				if (!std::strcmp(GetGlobalNames()[i]->GetAnsiName(), nameToFind)) {
+					cache.insert(i);
+					ComparisonIndex = i;
+					return;
+				}
+			}
+		}
+	};
+};
 
 class FUObjectItem
 {
@@ -281,15 +364,14 @@ public:
 		return NumElements;
 	}
 
-	[[nodiscard]] constexpr auto GetObjectPtr(std::size_t Index) const noexcept
+	[[nodiscard]] constexpr auto GetObjectPtr(std::int32_t Index) const noexcept
 	{
-		const auto ChunkIndex = Index / ElementsPerChunk;
-		const auto WithinChunkIndex = Index % ElementsPerChunk;
-		const auto Chunk = Objects[ChunkIndex];
-		return Chunk + WithinChunkIndex;
+		const auto ChunkIndex = Index / NumElementsPerChunk;
+		const auto WithinChunkIndex = Index % NumElementsPerChunk;
+		return Objects[ChunkIndex] + WithinChunkIndex;
 	}
 
-	[[nodiscard]] constexpr auto& GetByIndex(std::size_t Index) const noexcept
+	[[nodiscard]] constexpr auto& GetByIndex(std::int32_t Index) const noexcept
 	{
 		return *GetObjectPtr(Index);
 	}
@@ -313,133 +395,50 @@ public:
 	FChunkedFixedUObjectArray ObjObjects;
 };
 
-class FNameEntry
+template<class T>
+class TArray
 {
+	friend class FString;
+
 public:
-	[[nodiscard]] constexpr auto GetAnsiName() const noexcept
+	constexpr TArray() noexcept
 	{
-		return AnsiName;
-	}
-
-	[[nodiscard]] constexpr auto GetWideName() const noexcept
-	{
-		return WideName;
-	}
-
-private:
-	std::int32_t Index; //0x0000
-	char pad_0004[4]; //0x0004
-	class FNameEntry* HashNext; //0x0008
-
-	union
-	{
-		char AnsiName[1024];
-		wchar_t WideName[1024];
+		Data = nullptr;
+		Count = Max = 0;
 	};
-};
-static_assert(sizeof(FNameEntry) == 0x410);
 
-class TNameEntryArray
-{
-public:
 	[[nodiscard]] constexpr auto Num() const noexcept
 	{
-		return NumElements;
-	}
+		return Count;
+	};
 
-	[[nodiscard]] constexpr auto IsValidIndex(int Index) const noexcept
+	[[nodiscard]] constexpr auto& operator[](std::int32_t i) noexcept
 	{
-		return Index < Num() && Index >= 0;
-	}
+		return Data[i];
+	};
 
-	[[nodiscard]] constexpr auto& operator[](int Index) const noexcept
+	[[nodiscard]] constexpr const auto& operator[](std::int32_t i) const noexcept
 	{
-		return *GetItemPtr(Index);
+		return Data[i];
+	};
+
+	[[nodiscard]] constexpr auto IsValidIndex(std::int32_t i) const noexcept
+	{
+		return i < Num();
 	}
 
 private:
-	enum
-	{
-		ElementsPerChunk = 16 * 1024,
-		ChunkTableSize = (2 * 1024 * 1024 + ElementsPerChunk - 1) / ElementsPerChunk
-	};
-
-	[[nodiscard]] constexpr auto GetItemPtr(size_t Index) const noexcept
-	{
-		const auto ChunkIndex = Index / ElementsPerChunk;
-		const auto WithinChunkIndex = Index % ElementsPerChunk;
-		const auto Chunk = Chunks[ChunkIndex];
-		return Chunk + WithinChunkIndex;
-	}
-
-	FNameEntry* const* Chunks[ChunkTableSize];
-	std::int32_t NumElements;
-	std::int32_t NumChunks;
-};
-
-struct FName
-{
-	std::int32_t ComparisonIndex;
-	std::int32_t Number;
-
-	constexpr FName() noexcept : 
-		ComparisonIndex(0),
-		Number(0)
-	{
-	};
-
-	constexpr FName(int i) noexcept :
-		ComparisonIndex(i),
-		Number(0)
-	{
-	};
-
-	constexpr FName(const char* nameToFind) noexcept :
-		ComparisonIndex(0),
-		Number(0)
-	{
-		static std::unordered_set<int> cache;
-
-		for (auto i : cache) {
-			if (!std::strcmp(GetGlobalNames()[i]->GetAnsiName(), nameToFind)) {
-				ComparisonIndex = i;
-				return;
-			}
-		}
-
-		for (decltype(GetGlobalNames().Num()) i = 0, max = GetGlobalNames().Num(); i < max; ++i) {
-			if (GetGlobalNames()[i] != nullptr) {
-				if (!std::strcmp(GetGlobalNames()[i]->GetAnsiName(), nameToFind)) {
-					cache.insert(i);
-					ComparisonIndex = i;
-					return;
-				}
-			}
-		}
-	};
-
-	static TNameEntryArray *GNames;
-
-	[[nodiscard]] static constexpr auto& GetGlobalNames() noexcept
-	{
-		return *GNames;
-	};
-
-	[[nodiscard]] constexpr auto GetName() const noexcept
-	{
-		return GetGlobalNames()[ComparisonIndex]->GetAnsiName();
-	};
-
-	[[nodiscard]] constexpr auto operator==(const FName &other) const noexcept
-	{
-		return ComparisonIndex == other.ComparisonIndex;
-	};
+	T* Data;
+	std::int32_t Count;
+	std::int32_t Max;
 };
 
 class FString : public TArray<wchar_t>
 {
 public:
-	constexpr FString() noexcept {};
+	constexpr FString() noexcept 
+	{
+	};
 
 	constexpr FString(const wchar_t* other) noexcept
 	{
@@ -459,7 +458,7 @@ public:
 		return Data;
 	}
 
-	[[nodiscard]] constexpr auto ToString() const noexcept
+	[[nodiscard]] auto ToString() const noexcept
 	{
 		const auto length = std::wcslen(Data);
 		std::string str(length, '\0');
@@ -472,19 +471,21 @@ template<class TEnum>
 class TEnumAsByte
 {
 public:
-	constexpr TEnumAsByte() noexcept {}
+	constexpr TEnumAsByte() noexcept
+	{
+	}
 
 	constexpr TEnumAsByte(TEnum _value) noexcept :
-		value(static_cast<uint8_t>(_value))
+		value(static_cast<std::uint8_t>(_value))
 	{
 	}
 
-	constexpr explicit TEnumAsByte(int32_t _value) noexcept :
-		value(static_cast<uint8_t>(_value))
+	constexpr explicit TEnumAsByte(std::int32_t _value) noexcept :
+		value(static_cast<std::uint8_t>(_value))
 	{
 	}
 
-	constexpr explicit TEnumAsByte(uint8_t _value) noexcept :
+	constexpr explicit TEnumAsByte(std::uint8_t _value) noexcept :
 		value(_value)
 	{
 	}
@@ -503,61 +504,67 @@ private:
 	std::uint8_t value;
 };
 
+#pragma push_macro("GetObject")
+#undef GetObject
 class FScriptInterface
 {
 private:
-	UObject* ObjectPointer;
+	class UObject* ObjectPointer;
 	void* InterfacePointer;
 
 public:
-	inline UObject* GetObject() const
+	[[nodiscard]] constexpr auto GetObject() const noexcept
 	{
 		return ObjectPointer;
 	}
 
-	inline UObject*& GetObjectRef()
+	[[nodiscard]] constexpr auto& GetObjectRef() noexcept
 	{
 		return ObjectPointer;
 	}
 
-	inline void* GetInterface() const
+	[[nodiscard]] constexpr auto GetInterface() const noexcept
 	{
 		return ObjectPointer != nullptr ? InterfacePointer : nullptr;
 	}
 };
+#pragma pop_macro("GetObject")
 
 template<class InterfaceType>
 class TScriptInterface : public FScriptInterface
 {
 public:
-	inline InterfaceType* operator->() const
+	[[nodiscard]] constexpr auto operator->() const noexcept -> InterfaceType*
 	{
-		return (InterfaceType*)GetInterface();
+		return reinterpret_cast<InterfaceType*>(GetInterface());
 	}
 
-	inline InterfaceType& operator*() const
+	[[nodiscard]] constexpr InterfaceType& operator*() const noexcept
 	{
-		return *((InterfaceType*)GetInterface());
+		return *reinterpret_cast<InterfaceType*>(GetInterface());
 	}
 
-	inline operator bool() const
+	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return GetInterface() != nullptr;
 	}
 };
 
-class FTextData {
+class FTextData
+{
 public:
 	char UnknownData[0x28];
 	wchar_t* Name;
 	__int32 Length;
 };
 
-struct FText {
+struct FText
+{
 	FTextData* Data;
 	char UnknownData[0x10];
 
-	wchar_t* Get() const {
+	[[nodiscard]] constexpr auto Get() const noexcept -> wchar_t*
+	{
 		if (Data)
 			return Data->Name;
 
@@ -584,34 +591,33 @@ class TMap
 struct FWeakObjectPtr
 {
 public:
-	bool IsValid() const;
+	[[nodiscard]] auto IsValid() const noexcept -> bool;
+	[[nodiscard]] auto Get() const noexcept -> class UObject*;
 
-	UObject* Get() const;
-
-	int32_t ObjectIndex;
-	int32_t ObjectSerialNumber;
+	std::int32_t ObjectIndex;
+	std::int32_t ObjectSerialNumber;
 };
 
 template<class T, class TWeakObjectPtrBase = FWeakObjectPtr>
 struct TWeakObjectPtr : private TWeakObjectPtrBase
 {
 public:
-	inline T* Get() const
+	constexpr auto Get() const noexcept -> T*
 	{
-		return (T*)TWeakObjectPtrBase::Get();
+		return reinterpret_cast<T*>(TWeakObjectPtrBase::Get());
 	}
 
-	inline T& operator*() const
+	[[nodiscard]] constexpr auto& operator*() const noexcept
 	{
 		return *Get();
 	}
 
-	inline T* operator->() const
+	[[nodiscard]] constexpr auto operator->() const noexcept
 	{
 		return Get();
 	}
 
-	inline bool IsValid() const
+	[[nodiscard]] constexpr auto IsValid() const noexcept
 	{
 		return TWeakObjectPtrBase::IsValid();
 	}
@@ -621,17 +627,17 @@ template<class T, class TBASE>
 class TAutoPointer : public TBASE
 {
 public:
-	inline operator T*() const
+	[[nodiscard]] constexpr operator T*() const noexcept
 	{
 		return TBASE::Get();
 	}
 
-	inline operator const T*() const
+	[[nodiscard]] constexpr operator const T*() const noexcept
 	{
 		return (const T*)TBASE::Get();
 	}
 
-	explicit inline operator bool() const
+	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return TBASE::Get() != nullptr;
 	}
@@ -640,7 +646,6 @@ public:
 template<class T>
 class TAutoWeakObjectPtr : public TAutoPointer<T, TWeakObjectPtr<T>>
 {
-public:
 };
 
 template<typename TObjectID>
@@ -648,7 +653,7 @@ class TPersistentObjectPtr
 {
 public:
 	FWeakObjectPtr WeakPtr;
-	int32_t TagAtLastTest;
+	std::int32_t TagAtLastTest;
 	TObjectID ObjectID;
 };
 
@@ -659,13 +664,11 @@ struct FStringAssetReference_
 
 class FAssetPtr : public TPersistentObjectPtr<FStringAssetReference_>
 {
-
 };
 
 template<typename ObjectType>
 class TAssetPtr : FAssetPtr
 {
-
 };
 
 struct FSoftObjectPath
@@ -676,13 +679,11 @@ struct FSoftObjectPath
 
 class FSoftObjectPtr : public TPersistentObjectPtr<FSoftObjectPath>
 {
-
 };
 
 template<typename ObjectType>
 class TSoftObjectPtr : FSoftObjectPtr
 {
-
 };
 
 struct FUniqueObjectGuid_
@@ -692,31 +693,29 @@ struct FUniqueObjectGuid_
 
 class FLazyObjectPtr : public TPersistentObjectPtr<FUniqueObjectGuid_>
 {
-
 };
 
 template<typename ObjectType>
 class TLazyObjectPtr : FLazyObjectPtr
 {
-
 };
-
-class UClass;
 
 template<class TClass>
 class TSubclassOf
 {
 public:
-	TSubclassOf(UClass* Class) {
+	constexpr TSubclassOf(class UClass* Class) noexcept
+	{
 		this->Class = Class;
 	}
 
-	inline UClass* GetClass()
+	[[nodiscard]] constexpr auto GetClass() noexcept
 	{
 		return Class;
 	}
+
 private:
-	UClass* Class;
+	class UClass* Class;
 };)";
 	}
 

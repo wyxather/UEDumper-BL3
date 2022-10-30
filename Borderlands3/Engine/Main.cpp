@@ -132,46 +132,11 @@ void SaveSDKHeader(const fs::path& path, const std::unordered_map<UEObject, bool
 	os << "\n" << "namespace " << generator->GetNamespaceName() << "\n";
 
 	os << R"({
-	static bool DataCompare(PBYTE pData, PBYTE bSig, const char* szMask)
+	static auto InitSDK(std::uintptr_t names, std::uintptr_t objects, std::uintptr_t world) noexcept
 	{
-		for (; *szMask; ++szMask, ++pData, ++bSig)
-		{
-			if (*szMask == 'x' && *pData != *bSig)
-				return false;
-		}
-		return (*szMask) == 0;
-	}
-
-	static DWORD_PTR FindPattern(DWORD_PTR dwAddress, DWORD dwSize, const char* pbSig, const char* szMask, long offset)
-	{
-		size_t length = strlen(szMask);
-		for (size_t i = NULL; i < dwSize - length; i++)
-		{
-			if (DataCompare((PBYTE)dwAddress + i, (PBYTE)pbSig, szMask))
-				return dwAddress + i + offset;
-		}
-		return 0;
-	}
-
-	static void InitSDK()
-	{
-		DWORD_PTR BaseAddress = (DWORD_PTR)GetModuleHandle(NULL);
-
-		MODULEINFO ModuleInfo;
-		GetModuleInformation(GetCurrentProcess(), (HMODULE)BaseAddress, &ModuleInfo, sizeof(ModuleInfo));
-
-		auto GNamesAddress = FindPattern(BaseAddress, ModuleInfo.SizeOfImage,
-			"\x48\x83\xEC\x28\x48\x8B\x05\x00\x00\x00\x00\x48\x85\xC0\x75\x00\xB9\x00\x00\x00\x00\x48\x89\x5C\x24\x20\xE8", "xxxxxxx????xxxx?x????xxxxxx", 0);
-		FName::GNames = *(TNameEntryArray**)(Address + *(DWORD*)(GNamesAddress + 0x7) + 0xB);
-
-		auto GObjectsAddress = FindPattern(BaseAddress, ModuleInfo.SizeOfImage,
-			"\x48\x8B\x0D\x00\x00\x00\x00\x48\x98\x4C\x8B\x04\xD1\x48\x8D\x0C\x40\x49\x8D\x04\xC8\xEB", "xxx????xxxxxxxxxxxxxxx", 0);
-		UObject::GObjects = (FUObjectArray*)(Address + *(DWORD*)(Address + 0x3) + 7 - 0x10);
-
-		auto GWorldAddress = FindPattern(BaseAddress, ModuleInfo.SizeOfImage,
-			"\x48\x8B\x1D\x00\x00\x00\x04\x48\x85\xDB\x74\x3B", "xxx???xxxxxx", 0);
-		auto GWorldOffset = *reinterpret_cast<uint32_t*>(GWorldAddress + 3);
-		UWorld::GWorld = reinterpret_cast<UWorld**>(GWorldAddress + 7 + GWorldOffset);
+		FName::GNames = reinterpret_cast<decltype(FName::GNames)>(names);
+		UObject::GObjects = reinterpret_cast<decltype(UObject::GObjects)>(objects);
+		UWorld::GWorld = reinterpret_cast<decltype(UWorld::GWorld)>(world);
 	}
 })";
 }
