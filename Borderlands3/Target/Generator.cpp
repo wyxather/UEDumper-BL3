@@ -79,98 +79,134 @@ public:
 		};
 
 		predefinedMethods["Class CoreUObject.Object"] = {
-			PredefinedMethod::Inline(R"(	static inline FChunkedFixedUObjectArray& GetGlobalObjects()
+			PredefinedMethod::Inline(R"(	[[nodiscard]] static constexpr auto& GetGlobalObjects() noexcept
 	{
 		return GObjects->ObjObjects;
 	})"),
-			PredefinedMethod::Default("std::string GetName() const", R"(std::string UObject::GetName() const
-{
-	std::string name(Name.GetName());
-	if (Name.Number > 0)
+			PredefinedMethod::Inline(R"(	template <typename T>
+	[[nodiscard]] static constexpr auto FindObject(std::string_view name) noexcept -> T*
 	{
-		name += '_' + std::to_string(Name.Number);
-	}
+		for (decltype(GetGlobalObjects().Num()) i = 0, max = GetGlobalObjects().Num(); i < max; ++i) {
 
-	auto pos = name.rfind('/');
-	if (pos == std::string::npos)
-	{
-		return name;
-	}
-
-	return name.substr(pos + 1);
-})"),
-			PredefinedMethod::Default("std::string GetFullName() const", R"(std::string UObject::GetFullName() const
-{
-	std::string name;
-
-	if (Class != nullptr)
-	{
-		std::string temp;
-		for (auto p = Outer; p; p = p->Outer)
-		{
-			temp = p->GetName() + "." + temp;
-		}
-
-		name = Class->GetName();
-		name += " ";
-		name += temp;
-		name += GetName();
-	}
-
-	return name;
-})"),
-			PredefinedMethod::Inline(R"(	template<typename T>
-	static T* FindObject(const std::string& name)
-	{
-		for (int i = 0; i < GetGlobalObjects().Num(); ++i)
-		{
 			auto object = GetGlobalObjects().GetByIndex(i).Object;
-
 			if (object == nullptr)
-			{
 				continue;
-			}
 
 			if (object->GetFullName() == name)
-			{
 				return static_cast<T*>(object);
-			}
 		}
 		return nullptr;
 	})"),
-			PredefinedMethod::Inline(R"(	static UClass* FindClass(const std::string& name)
+			PredefinedMethod::Inline(R"(	template <typename T>
+	[[nodiscard]] static constexpr auto FindObjects(std::string_view name) noexcept -> std::vector<T*>
+	{
+		std::vector<T*> objects;
+		for (decltype(GetGlobalObjects().Num()) i = 0, max = GetGlobalObjects().Num(); i < max; ++i) {
+
+			auto object = GetGlobalObjects().GetByIndex(i).Object;
+			if (object == nullptr)
+				continue;
+
+			if (object->GetFullName() == name)
+				objects.emplace_back(static_cast<T*>(object));
+		}
+		return objects;
+	})"),
+			PredefinedMethod::Inline(R"(	template <typename T>
+	[[nodiscard]] static constexpr auto FindObject() noexcept -> T*
+	{
+		auto StaticClass = T::StaticClass();
+		for (decltype(GetGlobalObjects().Num()) i = 0, max = GetGlobalObjects().Num(); i < max; ++i) {
+
+			auto object = GetGlobalObjects().GetByIndex(i).Object;
+			if (object == nullptr)
+				continue;
+
+			if (object->IsA(StaticClass))
+				return static_cast<T*>(object);
+		}
+		return nullptr;
+	})"),
+			PredefinedMethod::Inline(R"(	template <typename T>
+	[[nodiscard]] static constexpr auto FindObjects() noexcept -> std::vector<T*>
+	{
+		std::vector<T*> objects;
+		auto StaticClass = T::StaticClass();
+		for (decltype(GetGlobalObjects().Num()) i = 0, max = GetGlobalObjects().Num(); i < max; ++i) {
+
+			auto object = GetGlobalObjects().GetByIndex(i).Object;
+			if (object == nullptr)
+				continue;
+
+			if (object->IsA(StaticClass))
+				objects.emplace_back(static_cast<T*>(object));
+		}
+		return objects;
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] static auto FindClass(std::string_view name) noexcept
 	{
 		return FindObject<UClass>(name);
 	})"),
-			PredefinedMethod::Inline(R"(	template<typename T>
-	static T* GetObjectCasted(std::size_t index)
+			PredefinedMethod::Inline(R"(	template <typename T>
+	[[nodiscard]] static auto GetObjectCasted(std::size_t index) noexcept
 	{
 		return static_cast<T*>(GetGlobalObjects().GetByIndex(index).Object);
 	})"),
-			PredefinedMethod::Default("bool IsA(UClass* cmp) const", R"(bool UObject::IsA(UClass* cmp) const
+			PredefinedMethod::Inline(R"(	static constexpr auto ProcessEvent(void*, void*) noexcept
+	{
+	})"),
+			PredefinedMethod::Default("[[nodiscard]] auto GetName() const noexcept -> std::string",
+			R"(auto UObject::GetName() const noexcept -> std::string
+{
+	std::string name(Name.GetName());
+	if (Name.Number > 0)
+		name += '_' + std::to_string(Name.Number);
+
+	auto pos = name.rfind('/');
+	if (pos == std::string::npos)
+		return name;
+
+	return name.substr(pos + 1);
+})"),
+			PredefinedMethod::Default("[[nodiscard]] auto GetFullName() const noexcept -> std::string",
+			R"(auto UObject::GetFullName() const noexcept -> std::string
+{
+	std::string name;
+
+	if (Class == nullptr)
+		return name;
+
+	std::string temp;
+	for (auto p = Outer; p; p = p->Outer)
+		temp = p->GetName() + "." + temp;
+
+	name = Class->GetName();
+	name += " ";
+	name += temp;
+	name += GetName();
+
+	return name;
+})"),
+			PredefinedMethod::Default("auto IsA(UClass* cmp) const noexcept -> bool",
+			R"(auto UObject::IsA(UClass* cmp) const noexcept -> bool
 {
 	for (auto super = Class; super; super = static_cast<UClass*>(super->SuperField))
-	{
 		if (super == cmp)
-		{
 			return true;
-		}
-	}
-
 	return false;
 })")
 		};
 		predefinedMethods["Class CoreUObject.Class"] = {
-			PredefinedMethod::Inline(R"(	template<typename T>
-	inline T* CreateDefaultObject()
+			PredefinedMethod::Inline(R"(	template <typename T>
+	constexpr auto CreateDefaultObject() noexcept -> T*
 	{
 		return static_cast<T*>(CreateDefaultObject());
 	})")
 		};
 
 		predefinedMethods["Class Engine.World"] = {
-			PredefinedMethod::Inline(R"(	static UWorld** GWorld;
-	static inline UWorld* GetWorld()
+			PredefinedMethod::Inline(R"(	static class UWorld** GWorld;
+	static constexpr auto GetWorld() noexcept
 	{
 		return *GWorld;
 	};)")
