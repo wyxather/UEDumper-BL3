@@ -9,7 +9,7 @@ std::string MakeValidName(std::string&& name)
 {
 	static std::unordered_set<char> disallowedChars = {
 		' ', '?', '+', '-', ':', '/', '^', '(', ')', '[',
-		']', '<', '>', '&', '.', '#', '\'', '"', '%',
+		']', '<', '>', '&', '.', '#', '\'', '"', '%', ','
 	};
 
 	static std::unordered_set<std::string> disallowedWords = {
