@@ -70,7 +70,7 @@ void SaveSDKHeader(const fs::path& path, const std::unordered_map<UEObject, bool
 		{
 			std::ofstream os2(path / "SDK" / tfm::format("%s_Basic.hpp", generator->GetGameNameShort()));
 
-			std::vector<std::string> includes{ { "<unordered_set>" }, { "<string>" } };
+			std::vector<std::string> includes{ { "<unordered_set>" }, { "<string>" }, { "<vector>" } };
 
 			auto&& generatorIncludes = generator->GetIncludes();
 			includes.insert(includes.end(), std::begin(generatorIncludes), std::end(generatorIncludes));
