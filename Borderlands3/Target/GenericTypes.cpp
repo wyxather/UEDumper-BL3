@@ -125,6 +125,11 @@ UEClass UEScriptStruct::StaticClass()
 //---------------------------------------------------------------------------
 //UEFunction
 //---------------------------------------------------------------------------
+void* UEFunction::GetFuncAddress() const
+{
+	return static_cast<UFunction*>(object)->Func;
+}
+//---------------------------------------------------------------------------
 UEFunctionFlags UEFunction::GetFunctionFlags() const
 {
 	return static_cast<UEFunctionFlags>(static_cast<UFunction*>(object)->FunctionFlags);

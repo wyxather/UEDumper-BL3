@@ -771,6 +771,7 @@ void Package::GenerateMethods(const UEClass& classObj, std::vector<Method>& meth
 			Method m;
 			m.Index = function.GetIndex();
 			m.FullName = function.GetFullName();
+			m.Address = function.GetFuncAddress();
 			m.Name = MakeValidName(function.GetName());
 
 			if (uniqueMethods.find(m.FullName) != std::end(uniqueMethods))
@@ -958,6 +959,7 @@ void Package::SaveFunctions(const fs::path& path) const
 		{
 			//Method Info
 			os << "// " << m.FullName << "\n"
+				<< "// " << m.Address << "\n"
 				<< "// (" << m.FlagsString << ")\n";
 			if (!m.Parameters.empty())
 			{

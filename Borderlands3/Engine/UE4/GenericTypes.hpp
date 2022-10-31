@@ -131,6 +131,7 @@ class UEFunction : public UEStruct
 public:
 	using UEStruct::UEStruct;
 
+	void* GetFuncAddress() const;
 	UEFunctionFlags GetFunctionFlags() const;
 
 	static UEClass StaticClass();

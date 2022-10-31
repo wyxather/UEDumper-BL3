@@ -228,6 +228,7 @@ private:
 		std::string FlagsString;
 		bool IsNative;
 		bool IsStatic;
+		void* Address;
 	};
 
 	/// <summary>
