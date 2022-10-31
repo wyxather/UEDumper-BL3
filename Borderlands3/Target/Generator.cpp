@@ -201,14 +201,6 @@ public:
 	})")
 		};
 
-		predefinedMethods["Class Engine.World"] = {
-			PredefinedMethod::Inline(R"(	static class UWorld** GWorld;
-	static constexpr auto GetWorld() noexcept
-	{
-		return *GWorld;
-	};)")
-		};
-
 		return true;
 	}
 
