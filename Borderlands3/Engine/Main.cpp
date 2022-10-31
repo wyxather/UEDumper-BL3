@@ -132,7 +132,7 @@ void SaveSDKHeader(const fs::path& path, const std::unordered_map<UEObject, bool
 	os << "\n" << "namespace " << generator->GetNamespaceName() << "\n";
 
 	os << R"({
-	constexpr auto InitSDK(std::uintptr_t names, std::uintptr_t objects, std::uintptr_t world) noexcept
+	static auto InitSDK(std::uintptr_t names, std::uintptr_t objects) noexcept
 	{
 		FName::GNames = reinterpret_cast<decltype(FName::GNames)>(names);
 		UObject::GObjects = reinterpret_cast<decltype(UObject::GObjects)>(objects);
