@@ -57,25 +57,46 @@ public:
 			{ "void*", "Func" }
 		};
 
+		predefinedMethods["ScriptStruct CoreUObject.Vector"] = {
+			PredefinedMethod::Inline(R"(	constexpr FVector(float x = 0.f, float y = 0.f, float z = 0.f) noexcept : X{ x }, Y{ y }, Z{ z } {})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator-(const FVector& a, const FVector& b) noexcept -> FVector
+	{
+		return { a.X - b.X, a.Y - b.Y, a.Z - b.Z };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator+(const FVector& a, const FVector& b) noexcept -> FVector
+	{
+		return { a.X + b.X, a.Y + b.Y, a.Z + b.Z };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator*(const FVector& a, const FVector& b) noexcept -> FVector
+	{
+		return { a.X * b.X, a.Y * b.Y, a.Z * b.Z };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator*(const FVector& v,  float f) noexcept -> FVector
+	{
+		return { v.X * f, v.Y * f, v.Z * f };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator-(float f, const FVector& v) noexcept -> FVector
+	{
+		return{ f - v.X, f - v.Y, f - v.Z };
+	})")
+		};
 		predefinedMethods["ScriptStruct CoreUObject.Vector2D"] = {
-			PredefinedMethod::Inline(R"(	constexpr FVector2D() noexcept
-		: X(0), Y(0)
-	{ })"),
-			PredefinedMethod::Inline(R"(	constexpr FVector2D(float x, float y) noexcept
-		: X(x),
-		  Y(y)
-	{ })")
+			PredefinedMethod::Inline(R"(	constexpr FVector2D(float x = 0.f, float y = 0.f) noexcept : X{ x }, Y{ y } {})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator-(const FVector2D& a, const FVector2D& b) noexcept -> FVector2D
+	{
+		return { a.X - b.X, a.Y - b.Y };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator+(const FVector2D& a, const FVector2D& b) noexcept -> FVector2D
+	{
+		return { a.X + b.X, a.Y + b.Y };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator*(const FVector2D& vec, float f) noexcept -> FVector2D
+	{
+		return { vec.X * f, vec.Y * f };
+	})")
 		};
 		predefinedMethods["ScriptStruct CoreUObject.LinearColor"] = {
-			PredefinedMethod::Inline(R"(	constexpr FLinearColor() noexcept
-		: R(0), G(0), B(0), A(0)
-	{ })"),
-			PredefinedMethod::Inline(R"(	constexpr FLinearColor(float r, float g, float b, float a) noexcept
-		: R(r),
-		  G(g),
-		  B(b),
-		  A(a)
-	{ })")
+			PredefinedMethod::Inline(R"(	constexpr FLinearColor(float r = 0.f, float g = 0.f, float b = 0.f, float a = 0.f) noexcept : R{ r }, G{ g }, B{ b }, A{ a } {})")
 		};
 
 		predefinedMethods["Class CoreUObject.Object"] = {
@@ -154,44 +175,49 @@ public:
 	})"),
 			PredefinedMethod::Default("[[nodiscard]] auto GetName() const noexcept -> std::string",
 			R"(auto UObject::GetName() const noexcept -> std::string
-{
-	std::string name(Name.GetName());
-	if (Name.Number > 0)
-		name += '_' + std::to_string(Name.Number);
+	{
+		std::string name(Name.GetName());
+		if (Name.Number > 0)
+			name += '_' + std::to_string(Name.Number);
 
-	auto pos = name.rfind('/');
-	if (pos == std::string::npos)
-		return name;
+		auto pos = name.rfind('/');
+		if (pos == std::string::npos)
+			return name;
 
-	return name.substr(pos + 1);
-})"),
+		return name.substr(pos + 1);
+	})"),
 			PredefinedMethod::Default("[[nodiscard]] auto GetFullName() const noexcept -> std::string",
 			R"(auto UObject::GetFullName() const noexcept -> std::string
-{
-	std::string name;
+	{
+		std::string name;
 
-	if (Class == nullptr)
+		if (Class == nullptr)
+			return name;
+
+		std::string temp;
+		for (auto p = Outer; p; p = p->Outer)
+			temp = p->GetName() + "." + temp;
+
+		name = Class->GetName();
+		name += " ";
+		name += temp;
+		name += GetName();
+
 		return name;
-
-	std::string temp;
-	for (auto p = Outer; p; p = p->Outer)
-		temp = p->GetName() + "." + temp;
-
-	name = Class->GetName();
-	name += " ";
-	name += temp;
-	name += GetName();
-
-	return name;
-})"),
+	})"),
 			PredefinedMethod::Default("auto IsA(UClass* cmp) const noexcept -> bool",
 			R"(auto UObject::IsA(UClass* cmp) const noexcept -> bool
-{
-	for (auto super = Class; super; super = static_cast<UClass*>(super->SuperField))
-		if (super == cmp)
-			return true;
-	return false;
-})")
+	{
+		for (auto super = Class; super; super = static_cast<UClass*>(super->SuperField))
+			if (super == cmp)
+				return true;
+		return false;
+	})"),
+			PredefinedMethod::Inline(R"(	template <typename T>
+	[[nodiscard]] constexpr auto IsA() const noexcept
+	{
+		return IsA(T::StaticClass());
+	})")
 		};
 		predefinedMethods["Class CoreUObject.Class"] = {
 			PredefinedMethod::Inline(R"(	template <typename T>
