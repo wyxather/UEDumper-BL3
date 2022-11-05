@@ -400,12 +400,37 @@ struct FName
 
 class FUObjectItem
 {
+	enum class EInternalObjectFlags : std::int32_t
+	{
+		None = 0,
+		ReachableInCluster = 1 << 23,
+		ClusterRoot = 1 << 24,
+		Native = 1 << 25,
+		Async = 1 << 26,
+		AsyncLoading = 1 << 27,
+		Unreachable = 1 << 28,
+		PendingKill = 1 << 29,
+		RootSet = 1 << 30,
+		GarbageCollectionKeepFlags = Native | Async | AsyncLoading,
+		AllFlags = ReachableInCluster | ClusterRoot | Native | Async | AsyncLoading | Unreachable | PendingKill | RootSet,
+	};
+
 public:
 	class UObject* Object;
 	std::int32_t Flags;
 	std::int32_t ClusterRootIndex;
 	std::int32_t SerialNumber;
 	char pad_0014[4];
+
+	[[nodiscard]] constexpr auto IsUnreachable() const noexcept
+	{
+		return !!(Flags & static_cast<std::underlying_type_t<EInternalObjectFlags>>(EInternalObjectFlags::Unreachable));
+	}
+
+	[[nodiscard]] constexpr auto IsPendingKill() const noexcept
+	{
+		return !!(Flags & static_cast<std::underlying_type_t<EInternalObjectFlags>>(EInternalObjectFlags::PendingKill));
+	}
 };
 
 class FChunkedFixedUObjectArray
@@ -778,9 +803,32 @@ private:
 
 	std::string GetBasicDefinitions() const override
 	{
-		return R"(TNameEntryArray* FName::GNames = nullptr;
-FUObjectArray* UObject::GObjects = nullptr;
-UWorld** UWorld::GWorld = nullptr;)";
+		return R"(	TNameEntryArray* FName::GNames = nullptr;
+	FUObjectArray* UObject::GObjects = nullptr;
+
+	auto FWeakObjectPtr::IsValid() const noexcept -> bool
+	{
+		if (ObjectSerialNumber == 0)
+			return false;
+
+		if (ObjectIndex < 0 || ObjectIndex >= UObject::GetGlobalObjects().Num())
+			return false;
+
+		const auto& item = UObject::GetGlobalObjects().GetByIndex(ObjectIndex);
+		if (item.SerialNumber != ObjectSerialNumber)
+			return false;
+
+		return !(item.IsUnreachable() || item.IsPendingKill());
+	}
+
+	auto FWeakObjectPtr::Get() const noexcept -> class UObject*
+	{
+		if (!IsValid())
+			return nullptr;
+
+		auto& item = UObject::GetGlobalObjects().GetByIndex(ObjectIndex);
+		return item.Object;
+	})";
 	}
 };
 
