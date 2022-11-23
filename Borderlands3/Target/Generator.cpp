@@ -78,7 +78,44 @@ public:
 			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator-(float f, const FVector& v) noexcept -> FVector
 	{
 		return{ f - v.X, f - v.Y, f - v.Z };
-	})")
+	})"),
+			PredefinedMethod::Inline(R"(	constexpr auto& operator+=(const FVector& v) noexcept
+	{
+		X += v.X;
+		Y += v.Y;
+		Z += v.Z;
+		return *this;
+	})"),
+			PredefinedMethod::Inline(R"(	constexpr auto& operator-=(const FVector& v) noexcept
+	{
+		X -= v.X;
+		Y -= v.Y;
+		Z -= v.Z;
+		return *this;
+	})"),
+			PredefinedMethod::Inline(R"(	constexpr auto& operator*=(const FVector& v) noexcept
+	{
+		X *= v.X;
+		Y *= v.Y;
+		Z *= v.Z;
+		return *this;
+	})"),
+			PredefinedMethod::Inline(R"(	constexpr auto& operator/=(const FVector& v) noexcept
+	{
+		X /= v.X;
+		Y /= v.Y;
+		Z /= v.Z;
+		return *this;
+	})"),
+			PredefinedMethod::Default("[[nodiscard]] auto toAngle() const noexcept -> FRotator;",
+			R"(auto FVector::toAngle() const noexcept -> FRotator
+	{
+		return {
+			math::rad2deg(std::atan2(Z, std::hypot(X, Y))),
+			math::rad2deg(std::atan2(Y, X)),
+			0.f
+		};
+	})"),
 		};
 		predefinedMethods["ScriptStruct CoreUObject.Vector2D"] = {
 			PredefinedMethod::Inline(R"(	constexpr FVector2D(float x = 0.f, float y = 0.f) noexcept : X{ x }, Y{ y } {})"),
@@ -97,6 +134,38 @@ public:
 		};
 		predefinedMethods["ScriptStruct CoreUObject.LinearColor"] = {
 			PredefinedMethod::Inline(R"(	constexpr FLinearColor(float r = 0.f, float g = 0.f, float b = 0.f, float a = 0.f) noexcept : R{ r }, G{ g }, B{ b }, A{ a } {})")
+		};
+		predefinedMethods["ScriptStruct CoreUObject.Rotator"] = {
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator-(const FRotator& a, const FRotator& b) noexcept -> FRotator
+	{
+		return { a.Pitch - b.Pitch, a.Yaw - b.Yaw, a.Roll - b.Roll };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] friend constexpr auto operator+(const FRotator& a, const FRotator& b) noexcept -> FRotator
+	{
+		return { a.Pitch + b.Pitch, a.Yaw + b.Yaw, a.Roll + b.Roll };
+	})"),
+			PredefinedMethod::Inline(R"(	[[nodiscard]] constexpr auto fromAngle() const noexcept -> FVector
+	{
+		return {
+			std::cos(math::deg2rad(Pitch)) * std::cos(math::deg2rad(Yaw)),
+			std::cos(math::deg2rad(Pitch)) * std::sin(math::deg2rad(Yaw)),
+			std::sin(math::deg2rad(Pitch))
+		};
+	})"),
+			PredefinedMethod::Inline(R"(	constexpr auto& operator+=(const FRotator& o) noexcept
+	{
+		Pitch += o.Pitch;
+		Yaw += o.Yaw;
+		Roll += o.Roll;
+		return *this;
+	})"),
+			PredefinedMethod::Inline(R"(	constexpr auto& normalize() noexcept
+	{
+		Pitch = std::isfinite(Pitch) ? std::remainder(Pitch, 360.f) : 0.f;
+		Yaw = std::isfinite(Yaw) ? std::remainder(Yaw, 360.f) : 0.f;
+		Roll = 0.f;
+		return *this;
+	})")
 		};
 
 		predefinedMethods["Class CoreUObject.Object"] = {
@@ -176,11 +245,11 @@ public:
 			PredefinedMethod::Default("[[nodiscard]] auto GetName() const noexcept -> std::string",
 			R"(auto UObject::GetName() const noexcept -> std::string
 	{
-		std::string name(Name.GetName());
+		std::string name{ Name.GetName() };
 		if (Name.Number > 0)
 			name += '_' + std::to_string(Name.Number);
 
-		auto pos = name.rfind('/');
+		const auto pos = name.rfind('/');
 		if (pos == std::string::npos)
 			return name;
 
@@ -190,7 +259,6 @@ public:
 			R"(auto UObject::GetFullName() const noexcept -> std::string
 	{
 		std::string name;
-
 		if (Class == nullptr)
 			return name;
 
@@ -281,7 +349,6 @@ public:
 	[[nodiscard]] constexpr auto GetAnsiName() const noexcept
 	{
 		return AnsiName;
-
 	}
 
 	[[nodiscard]] constexpr auto GetWideName() const noexcept
