@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Target\EngineClasses.hpp">
+    <ClInclude Include="Engine\tinyformat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine\cpplinq.hpp">
@@ -45,9 +45,6 @@
     <ClInclude Include="Engine\PrintHelper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\tinyformat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\UE4\PropertyFlags.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -57,20 +54,11 @@
     <ClInclude Include="Engine\UE4\GenericTypes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Target\Borderlands 3\EngineClasses.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Target\ObjectsStore.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Target\Generator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Target\GenericTypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Target\NamesStore.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -105,6 +93,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Engine\UE4\PropertyFlags.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Target\Borderlands 3\ObjectsStore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Target\Borderlands 3\Generator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Target\Borderlands 3\GenericTypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Target\Borderlands 3\NamesStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
