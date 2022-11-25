@@ -27,12 +27,12 @@ public:
 		};
 
 		predefinedMembers["Class CoreUObject.Object"] = {
-			{ "void*", "Vtable" },
+			{ "void*", "VTable" },
 			{ "int32_t", "ObjectFlags" },
 			{ "int32_t", "InternalIndex" },
-			{ "class UClass*", "Class" },
-			{ "FName", "Name" },
-			{ "class UObject*", "Outer" }
+			{ "class UClass*", "ClassPrivate" },
+			{ "class FName", "NamePrivate" },
+			{ "class UObject*", "OuterPrivate" }
 		};
 		predefinedStaticMembers["Class CoreUObject.Object"] = {
 			{ "FUObjectArray*", "GObjects" }
@@ -41,19 +41,26 @@ public:
 			{ "class UField*", "Next" }
 		};
 		predefinedMembers["Class CoreUObject.Struct"] = {
-			{ "class UStruct*", "SuperField" },
+			{ "char", "pad_0030[16]"},
+			{ "class UStruct*", "SuperStruct" },
 			{ "class UField*", "Children" },
 			{ "int32_t", "PropertySize" },
 			{ "int32_t", "MinAlignment" },
-			{ "char", "pad_0048[64]"}
+			{ "char", "pad_0058[64]"}
 		};
 		predefinedMembers["Class CoreUObject.Function"] = {
 			{ "int32_t", "FunctionFlags" },
-			{ "int16_t", "NumParms" },
-			{ "int8_t", "ParmsSize" },
-			{ "char", "pad_008F[1]" },
+			{ "int8_t", "NumParms" },
+			{ "char", "pad_009D[1]" },
+			{ "int16_t", "ParmsSize" },
 			{ "uint16_t", "ReturnValueOffset" },
-			{ "char", "pad_0092[30]" },
+			{ "int16_t", "RPCId" },
+			{ "int16_t", "RPCResponseId" },
+			{ "char", "pad_00A6[2]" },
+			{ "int64_t", "FirstPropertyToInit" },
+			{ "int64_t", "EventGraphFunction" },
+			{ "int64_t", "EventGraphCallOffset" },
+			{ "char", "pad_00BC[4]" },
 			{ "void*", "Func" }
 		};
 
@@ -357,13 +364,12 @@ public:
 	}
 
 private:
-	std::int32_t Index; //0x0000
-	char pad_0004[4]; //0x0004
-	class FNameEntry* HashNext; //0x0008
+	class FNameEntry* HashNext; //0x0000
+	int32_t Index; //0x0008
 
-	union //0x0010
+	union //0x000C
 	{
-		char AnsiName[1024];
+		char AnsiName[2048];
 		wchar_t WideName[1024];
 	};
 };
@@ -373,7 +379,7 @@ class TNameEntryArray
 	enum
 	{
 		ElementsPerChunk = 16 * 1024,
-		ChunkTableSize = (2 * 1024 * 1024 + ElementsPerChunk - 1) / ElementsPerChunk
+		ChunkTableSize = (4 * 1024 * 1024 + ElementsPerChunk - 1) / ElementsPerChunk
 	};
 
 	[[nodiscard]] constexpr auto GetItemPtr(std::size_t Index) const noexcept
@@ -387,24 +393,24 @@ public:
 	[[nodiscard]] constexpr auto Num() const noexcept
 	{
 		return NumElements;
-
 	}
 
-	[[nodiscard]] constexpr auto IsValidIndex(std::int32_t Index) const noexcept
+	[[nodiscard]] constexpr auto IsValidIndex(std::size_t Index) const noexcept
 	{
-		return Index < Num() && Index >= 0;
+		return Index >= 0 && Index < NumElements && GetById(Index);
 	}
 
-	[[nodiscard]] constexpr auto& operator[](std::int32_t Index) const noexcept
+	[[nodiscard]] constexpr auto& operator[](std::size_t Index) const noexcept
 	{
 		return *GetItemPtr(Index);
 	}
 
 private:
-	FNameEntry* const* Chunks[ChunkTableSize];
-	std::int32_t NumElements;
-	std::int32_t NumChunks;
-};
+	FNameEntry* const* Chunks[ChunkTableSize]; //0x0000
+	int32_t NumElements; //0x0800
+	int32_t NumChunks; //0x0804
+}; //Size: 0x0808
+static_assert(sizeof(TNameEntryArray) == 0x808);
 
 struct FName
 {
@@ -413,32 +419,32 @@ struct FName
 	[[nodiscard]] static constexpr auto& GetGlobalNames() noexcept
 	{
 		return *GNames;
-	};
+	}
 
 	[[nodiscard]] constexpr auto GetName() const noexcept
 	{
 		return GetGlobalNames()[ComparisonIndex]->GetAnsiName();
-	};
+	}
 
 	[[nodiscard]] constexpr auto operator==(const FName& other) const noexcept
 	{
 		return ComparisonIndex == other.ComparisonIndex;
-	};
+	}
 
 	std::int32_t ComparisonIndex;
-	std::int32_t Number;
+	std::uint32_t Number;
 
 	constexpr FName() noexcept :
 		ComparisonIndex(0),
 		Number(0)
 	{
-	};
+	}
 
 	constexpr FName(std::int32_t i) noexcept :
 		ComparisonIndex(i),
 		Number(0)
 	{
-	};
+	}
 
 	FName(const char* nameToFind) noexcept :
 		ComparisonIndex(0),
@@ -462,8 +468,9 @@ struct FName
 				}
 			}
 		}
-	};
-};
+	}
+}; //Size: 0x0008
+static_assert(sizeof(FName) == 0x8);
 
 class FUObjectItem
 {
@@ -483,11 +490,11 @@ class FUObjectItem
 	};
 
 public:
-	class UObject* Object;
-	std::int32_t Flags;
-	std::int32_t ClusterRootIndex;
-	std::int32_t SerialNumber;
-	char pad_0014[4];
+	class UObject* Object; //0x0000
+	int32_t Flags; //0x0008
+	int32_t ClusterRootIndex; //0x000C
+	int32_t SerialNumber; //0x0010
+	char pad_0014[4]; //0x0014
 
 	[[nodiscard]] constexpr auto IsUnreachable() const noexcept
 	{
@@ -498,7 +505,8 @@ public:
 	{
 		return !!(Flags & static_cast<std::underlying_type_t<EInternalObjectFlags>>(EInternalObjectFlags::PendingKill));
 	}
-};
+}; //Size: 0x0018
+static_assert(sizeof(FUObjectItem) == 0x18);
 
 class FChunkedFixedUObjectArray
 {
@@ -513,47 +521,50 @@ public:
 		return NumElements;
 	}
 
-	[[nodiscard]] constexpr auto GetObjectPtr(std::int32_t Index) const noexcept
+	[[nodiscard]] constexpr auto GetObjectPtr(std::size_t Index) const noexcept
 	{
 		const auto ChunkIndex = Index / NumElementsPerChunk;
 		const auto WithinChunkIndex = Index % NumElementsPerChunk;
 		return Objects[ChunkIndex] + WithinChunkIndex;
 	}
 
-	[[nodiscard]] constexpr auto& GetByIndex(std::int32_t Index) const noexcept
+	[[nodiscard]] constexpr auto& GetByIndex(std::size_t Index) const noexcept
 	{
 		return *GetObjectPtr(Index);
 	}
-
 private:
-	class FUObjectItem** Objects;
-	class FUObjectItem* PreAllocatedObjects;
-	std::int32_t MaxElements;
-	std::int32_t NumElements;
-	std::int32_t MaxChunks;
-	std::int32_t NumChunks;
-};
+	class FUObjectItem* PreAllocatedObjects; //0x0008
+	int32_t MaxElements; //0x0010
+	int32_t NumElements; //0x0014
+	int32_t MaxChunks; //0x0018
+	int32_t NumChunks; //0x001C
+}; //Size: 0x0020
+static_assert(sizeof(FChunkedFixedUObjectArray) == 0x20);
 
 class FUObjectArray
 {
 public:
-	std::int32_t ObjFirstGCIndex;
-	std::int32_t ObjLastNonGCIndex;
-	std::int32_t MaxObjectsNotConsideredByGC;
-	bool OpenForDisregardForGC;
-	FChunkedFixedUObjectArray ObjObjects;
-};
+	int32_t ObjFirstGCIndex; //0x0000
+	int32_t ObjLastNonGCIndex; //0x0004
+	int32_t MaxObjectsNotConsideredByGC; //0x0008
+	bool OpenForDisregardForGC; //0x000C
+	char pad_000D[3]; //0x000D
+	class FChunkedFixedUObjectArray ObjObjects; //0x0010
+}; //Size: 0x0030
+static_assert(sizeof(FUObjectArray) == 0x30);
 
 template<class T>
 class TArray
 {
 	friend class FString;
 
+	T* Data; //0x0000
+	int32_t Count; //0x0008
+	int32_t Max; //0x000C
+
 public:
-	constexpr TArray() noexcept
+	constexpr TArray() noexcept : Data{ nullptr }, Count{ 0 }, Max{ 0 }
 	{
-		Data = nullptr;
-		Count = Max = 0;
 	};
 
 	[[nodiscard]] constexpr auto Num() const noexcept
@@ -561,26 +572,22 @@ public:
 		return Count;
 	};
 
-	[[nodiscard]] constexpr auto& operator[](std::int32_t i) noexcept
+	[[nodiscard]] constexpr auto& operator[](std::size_t i) noexcept
 	{
 		return Data[i];
 	};
 
-	[[nodiscard]] constexpr const auto& operator[](std::int32_t i) const noexcept
+	[[nodiscard]] constexpr const auto& operator[](std::size_t i) const noexcept
 	{
 		return Data[i];
 	};
 
-	[[nodiscard]] constexpr auto IsValidIndex(std::int32_t i) const noexcept
+	[[nodiscard]] constexpr auto IsValidIndex(std::size_t i) const noexcept
 	{
 		return i < Num();
 	}
-
-private:
-	T* Data;
-	std::int32_t Count;
-	std::int32_t Max;
-};
+}; //Size: 0x0010
+static_assert(sizeof(TArray<void>) == 0x10);
 
 class FString : public TArray<wchar_t>
 {
@@ -589,10 +596,9 @@ public:
 	{
 	};
 
-	constexpr FString(const wchar_t* other) noexcept
+	constexpr explicit FString(const wchar_t* other) noexcept
 	{
 		Max = Count = *other ? static_cast<std::int32_t>(std::wcslen(other)) + 1 : 0;
-
 		if (Count)
 			Data = const_cast<wchar_t*>(other);
 	};
@@ -614,7 +620,8 @@ public:
 		std::use_facet<std::ctype<wchar_t>>(std::locale()).narrow(Data, Data + length, '?', &str[0]);
 		return str;
 	}
-};
+}; //Size: 0x0010
+static_assert(sizeof(FString) == 0x10);
 
 template<class TEnum>
 class TEnumAsByte
@@ -658,8 +665,8 @@ private:
 class FScriptInterface
 {
 private:
-	class UObject* ObjectPointer;
-	void* InterfacePointer;
+	class UObject *ObjectPointer; //0x0000
+	void* InterfacePointer; //0x0008
 
 public:
 	[[nodiscard]] constexpr auto GetObject() const noexcept
@@ -676,7 +683,8 @@ public:
 	{
 		return ObjectPointer != nullptr ? InterfacePointer : nullptr;
 	}
-};
+}; //Size: 0x0010
+static_assert(sizeof(FScriptInterface) == 0x10);
 #pragma pop_macro("GetObject")
 
 template<class InterfaceType>
@@ -716,7 +724,6 @@ struct FText
 	{
 		if (Data)
 			return Data->Name;
-
 		return nullptr;
 	}
 };
@@ -743,9 +750,10 @@ public:
 	[[nodiscard]] auto IsValid() const noexcept -> bool;
 	[[nodiscard]] auto Get() const noexcept -> class UObject*;
 
-	std::int32_t ObjectIndex;
-	std::int32_t ObjectSerialNumber;
-};
+	int32_t ObjectIndex; //0x0000
+	int32_t ObjectSerialNumber; //0x0004
+}; //Size: 0x0008
+static_assert(sizeof(FWeakObjectPtr) == 0x8);
 
 template<class T, class TWeakObjectPtrBase = FWeakObjectPtr>
 struct TWeakObjectPtr : private TWeakObjectPtrBase

@@ -143,7 +143,8 @@ public:
 	{
 		return i < Num();
 	}
-};
+}; //Size: 0x0010
+static_assert(sizeof(TArray<void>) == 0x10);
 
 class FString : public TArray<wchar_t>
 {
