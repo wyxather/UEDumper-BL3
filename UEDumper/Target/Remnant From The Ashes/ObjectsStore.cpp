@@ -76,7 +76,7 @@ bool ObjectsStore::Initialize()
 		return false;
 
 	const auto address = PatternFinder{
-	{ reinterpret_cast<const std::byte*>(moduleInfo.lpBaseOfDll), moduleInfo.SizeOfImage }
+		{ reinterpret_cast<const std::byte*>(moduleInfo.lpBaseOfDll), moduleInfo.SizeOfImage }
 	}(PatternWrapper{
 		"\x44\x8B\xFF\xFF\xFF\x48\x8D\x05\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x48\x89\x71\x10"
 		}());
