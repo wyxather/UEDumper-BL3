@@ -2,7 +2,7 @@
 #include <Psapi.h>
 #include <cassert>
 
-#include "PatternFinder.h"
+#include "../Engine/PatternFinder.hpp"
 
 static const char data[] = "\x44\33\x22\x11\x00\55";
 
@@ -14,9 +14,7 @@ auto main() -> int
 
 	const auto pattern = PatternFinder{
 		{ reinterpret_cast<const std::byte*>(info.lpBaseOfDll), info.SizeOfImage }
-	}(PatternWrapper{
-		"\x44\33\x22\x11\x00\55"
-		}());
+	}(PatternView<"\x44\33\x22\x11\x00\55">::value);
 
 	assert((void*)pattern == (void*)data);
 	printf("%p | %p", pattern, data);

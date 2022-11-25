@@ -1,6 +1,8 @@
 #include "ObjectsStore.hpp"
 #include "PatternFinder.hpp"
 
+#include <Psapi.h>
+
 namespace
 {
 	class FUObjectItem
@@ -57,9 +59,29 @@ namespace
 
 bool ObjectsStore::Initialize()
 {
-	auto Address = FindPattern(GetModuleHandleW(0), (unsigned char*)"\x48\x8B\x0D\x00\x00\x00\x00\x48\x98\x4C\x8B\x04\xD1\x48\x8D\x0C\x40\x49\x8D\x04\xC8\xEB", "xxx????xxxxxxxxxxxxxxx");
-	printf("ObjecStore::Address = %p\n", (void*)Address);
-	GlobalObjects = (FUObjectArray*)(Address + *(DWORD*)(Address + 0x3) + 7 - 0x10);
+	const auto processHandle = GetCurrentProcess();
+	if (!processHandle)
+		return false;
+
+	const auto moduleHandle = GetModuleHandle(nullptr);
+	if (!moduleHandle)
+		return false;
+
+	MODULEINFO moduleInfo;
+	if (!GetModuleInformation(processHandle, moduleHandle, &moduleInfo, sizeof(moduleInfo)))
+		return false;
+
+	const auto address = PatternFinder{
+	{ reinterpret_cast<const std::byte*>(moduleInfo.lpBaseOfDll), moduleInfo.SizeOfImage }
+	}(PatternWrapper{
+		"\x48\x8B\x0D\xFF\xFF\xFF\xFF\x48\x98\x4C\x8B\x04\xD1\x48\x8D\x0C\x40\x49\x8D\x04\xC8\xEB"
+		}());
+
+	if (!address)
+		return false;
+	
+	printf("ObjecStore::Address = %p\n", (void*)address);
+	GlobalObjects = (FUObjectArray*)(address + *(DWORD*)(address + 0x3) + 7 - 0x10);
 	printf("ObjecStore::GlobalObjects = %p\n", (void*)GlobalObjects);
 
 	return true;

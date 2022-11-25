@@ -1,4 +1,5 @@
 #include "NamesStore.hpp"
+#include "PatternFinder.hpp"
 
 class Generator : public IGenerator
 {
@@ -14,13 +15,13 @@ public:
 		};
 
 		virtualFunctionPattern["Class CoreUObject.Object"] = {
-			{ "\x40\x55\x56\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x81\xEC\xF0", "xxxxxxxxxxxxxxxx", 0x400, R"(	constexpr auto ProcessEvent(class UFunction* function, void* parms) noexcept
+			{ PatternView<"\x40\x55\x56\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x81\xEC\xF0">::value, 0x400, R"(	constexpr auto ProcessEvent(class UFunction* function, void* parms) noexcept
 	{
 		return GetVFunction<void(*)(UObject*, class UFunction*, void*)>(this, %d)(this, function, parms);
 	})" }
 		};
 		virtualFunctionPattern["Class CoreUObject.Class"] = {
-			{ "\x4C\x8B\xDC\x57\x48\x81\xEC\xE0\x01", "xxxxxxxxx", 0x200, R"(	constexpr auto CreateDefaultObject() noexcept
+			{ PatternView<"\x4C\x8B\xDC\x57\x48\x81\xEC\xE0\x01">::value, 0x400, R"(	constexpr auto CreateDefaultObject() noexcept
 	{
 		return GetVFunction<UObject*(*)(UClass*)>(this, %d)(this);
 	})" }

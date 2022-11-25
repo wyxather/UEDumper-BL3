@@ -1,6 +1,8 @@
 #include "NamesStore.hpp"
 #include "PatternFinder.hpp"
 
+#include <Psapi.h>
+
 namespace
 {
 	class FNameEntry
@@ -50,9 +52,29 @@ namespace
 
 auto NamesStore::Initialize() noexcept -> bool
 {
-	auto Address = FindPattern(GetModuleHandleW(0), (unsigned char*)"\x48\x83\xEC\x28\x48\x8B\x05\x00\x00\x00\x00\x48\x85\xC0\x75\x00\xB9\x00\x00\x00\x00\x48\x89\x5C\x24\x20\xE8", "xxxxxxx????xxxx?x????xxxxxx");
-	printf("NamesStore:Address = %p\n", (void*)Address);
-	GlobalNames = *(TNameEntryArray**)(Address + *(DWORD*)(Address + 0x7) + 0xB);
+	const auto processHandle = GetCurrentProcess();
+	if (!processHandle)
+		return false;
+
+	const auto moduleHandle = GetModuleHandle(nullptr);
+	if (!moduleHandle)
+		return false;
+
+	MODULEINFO moduleInfo;
+	if (!GetModuleInformation(processHandle, moduleHandle, &moduleInfo, sizeof(moduleInfo)))
+		return false;
+
+	const auto address = PatternFinder{
+		{ reinterpret_cast<const std::byte*>(moduleInfo.lpBaseOfDll), moduleInfo.SizeOfImage }
+	}(PatternWrapper{
+		"\x48\x83\xEC\x28\x48\x8B\x05\xFF\xFF\xFF\xFF\x48\x85\xC0\x75\xFF\xB9\xFF\xFF\xFF\xFF\x48\x89\x5C\x24\x20\xE8"
+		}());
+
+	if (!address)
+		return false;
+
+	printf("NamesStore:Address = %p\n", (void*)address);
+	GlobalNames = *(TNameEntryArray**)(address + *(DWORD*)(address + 0x7) + 0xB);
 	printf("NamesStore:GlobalNames = %p\n", (void*)GlobalNames);
 
 	return true;

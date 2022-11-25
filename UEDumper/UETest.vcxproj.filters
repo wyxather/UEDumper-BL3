@@ -15,15 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Test\PatternFinder.cpp">
+    <ClCompile Include="Test\UETest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Test\UETest.cpp">
+    <ClCompile Include="Engine\PatternFinder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Test\PatternFinder.h">
+    <ClInclude Include="Engine\PatternFinder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

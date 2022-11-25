@@ -1,5 +1,7 @@
 #include "Package.hpp"
 
+
+#include <cstring>
 #include <fstream>
 #include <unordered_set>
 #include "tinyformat.h"
@@ -453,11 +455,18 @@ void Package::GenerateClass(const UEClass& classObj)
 		{
 			for (auto i = 0u; i < methodCount; ++i)
 			{
-				if (vtable[i] != 0 && FindPattern(vtable[i], std::get<2>(pattern), reinterpret_cast<const unsigned char*>(std::get<0>(pattern)), std::get<1>(pattern)) != -1)
-				{
-					c.PredefinedMethods.push_back(IGenerator::PredefinedMethod::Inline(tfm::format(std::get<3>(pattern), i)));
-					break;
-				}
+				if (!vtable[i])
+					continue;
+
+				const auto address = PatternFinder{
+					{ reinterpret_cast<const std::byte*>(vtable[i]), std::get<1>(pattern) }
+				}(std::get<0>(pattern));
+
+				if (!address)
+					continue;
+
+				c.PredefinedMethods.push_back(IGenerator::PredefinedMethod::Inline(tfm::format(std::get<2>(pattern), i)));
+				break;
 			}
 		}
 	}

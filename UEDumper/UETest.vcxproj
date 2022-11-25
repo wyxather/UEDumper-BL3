@@ -11,11 +11,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Test\PatternFinder.cpp" />
+    <ClCompile Include="Engine\PatternFinder.cpp" />
     <ClCompile Include="Test\UETest.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Test\PatternFinder.h" />
+    <ClInclude Include="Engine\PatternFinder.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

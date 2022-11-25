@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -226,7 +227,7 @@ public:
 		return false;
 	}
 
-	using VirtualFunctionPatterns = std::vector<std::tuple<const char*, const char*, size_t, const char*>>;
+	using VirtualFunctionPatterns = std::vector<std::tuple<std::span<const std::uint8_t>, std::size_t, const char*>>;
 
 	/// <summary>
 	/// Gets the patterns of virtual functions of the specific class.
