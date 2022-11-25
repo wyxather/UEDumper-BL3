@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Borderlands3", "UEDumper\Borderlands3.vcxproj", "{82D798A5-C60B-46D7-9BEA-629F9E2BED39}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Borderlands 3", "UEDumper\Borderlands3.vcxproj", "{82D798A5-C60B-46D7-9BEA-629F9E2BED39}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RemnantFromTheAshes", "UEDumper\RemnantFromTheAshes.vcxproj", "{6052ACE5-FFA3-4FC7-83B0-E6E6280C246F}"
 EndProject
