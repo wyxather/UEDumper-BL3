@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Borderlands 3", "UEDumper\B
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RemnantFromTheAshes", "UEDumper\RemnantFromTheAshes.vcxproj", "{6052ACE5-FFA3-4FC7-83B0-E6E6280C246F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UETest", "UEDumper\UETest.vcxproj", "{2EA1A56C-3A26-4654-BD92-27B97B4D9095}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{6052ACE5-FFA3-4FC7-83B0-E6E6280C246F}.Debug|x64.Build.0 = Debug|x64
 		{6052ACE5-FFA3-4FC7-83B0-E6E6280C246F}.Release|x64.ActiveCfg = Release|x64
 		{6052ACE5-FFA3-4FC7-83B0-E6E6280C246F}.Release|x64.Build.0 = Release|x64
+		{2EA1A56C-3A26-4654-BD92-27B97B4D9095}.Debug|x64.ActiveCfg = Debug|x64
+		{2EA1A56C-3A26-4654-BD92-27B97B4D9095}.Debug|x64.Build.0 = Debug|x64
+		{2EA1A56C-3A26-4654-BD92-27B97B4D9095}.Release|x64.ActiveCfg = Release|x64
+		{2EA1A56C-3A26-4654-BD92-27B97B4D9095}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
