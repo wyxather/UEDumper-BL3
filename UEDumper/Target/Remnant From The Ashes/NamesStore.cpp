@@ -65,7 +65,7 @@ auto NamesStore::Initialize() noexcept -> bool
 
 	const auto address = PatternFinder{
 		{ reinterpret_cast<const std::byte*>(moduleInfo.lpBaseOfDll), moduleInfo.SizeOfImage }
-	}(PatternView<"\x48\x83\xEC\x28\x48\x8B\x05\xFF\xFF\xFF\xFF\x48\x85\xC0\x75\xFF\xB9\xFF\xFF\x00\x00\x48\x89\x5C\x24\x20\xE8">::value);
+	}(PatternView<"48 83 EC 28 48 8B 05 ? ? ? ? 48 85 C0 75 ? B9 ? ? 00 00 48 89 5C 24 20 E8">::value);
 
 	if (!address)
 		return false;

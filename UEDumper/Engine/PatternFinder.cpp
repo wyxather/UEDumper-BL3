@@ -5,16 +5,15 @@
 #pragma push_macro("max")
 #undef max
 
-[[nodiscard]] static constexpr auto operator==(std::span<const std::byte> bytes, std::span<const std::uint8_t> pattern) noexcept
+[[nodiscard]] static constexpr auto operator==(std::span<const std::byte> bytes, std::span<const PatternType> pattern) noexcept
 {
-    using PatternType = decltype(pattern)::element_type;
     for (std::size_t i = 0; i < bytes.size(); ++i)
         if (std::to_integer<PatternType>(bytes[i]) != pattern[i] && pattern[i] != std::numeric_limits<PatternType>::max())
             return false;
     return true;
 }
 
-auto PatternFinder::operator()(std::span<const std::uint8_t> pattern) const noexcept -> const std::byte*
+auto PatternFinder::operator()(std::span<const PatternType> pattern) const noexcept -> const std::byte*
 {
     const auto indexOfLastPatternChar = pattern.size() - 1;
     const auto patternWithoutFirstAndLastChar = pattern.subspan(1, pattern.size() >= 2 ? pattern.size() - 2 : 0);

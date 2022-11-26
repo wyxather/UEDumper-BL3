@@ -4,7 +4,7 @@
 
 #include "../Engine/PatternFinder.hpp"
 
-static const char data[] = "\x44\33\x22\x11\x00\55";
+static const char data[] = "\x44\x33\x22\x11\x00\x55";
 
 auto main() -> int
 {
@@ -14,7 +14,7 @@ auto main() -> int
 
 	const auto pattern = PatternFinder{
 		{ reinterpret_cast<const std::byte*>(info.lpBaseOfDll), info.SizeOfImage }
-	}(PatternView<"\x44\33\x22\x11\x00\55">::value);
+	}(PatternView<"44 33 22 11 00 55">::value);
 
 	assert((void*)pattern == (void*)data);
 	printf("%p | %p", pattern, data);

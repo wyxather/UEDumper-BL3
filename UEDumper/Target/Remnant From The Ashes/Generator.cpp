@@ -15,13 +15,13 @@ public:
 		};
 
 		virtualFunctionPattern["Class CoreUObject.Object"] = {
-			{ PatternView<"\x40\x55\x56\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x81\xEC\xF0">::value, 0x400, R"(	constexpr auto ProcessEvent(class UFunction* function, void* parms) noexcept
+			{ PatternView<"40 55 56 57 41 54 41 55 41 56 41 57 48 81 EC F0">::value, 0x400, R"(	constexpr auto ProcessEvent(class UFunction* function, void* parms) noexcept
 	{
 		return GetVFunction<void(*)(UObject*, class UFunction*, void*)>(this, %d)(this, function, parms);
 	})" }
 		};
 		virtualFunctionPattern["Class CoreUObject.Class"] = {
-			{ PatternView<"\x4C\x8B\xDC\x57\x48\x81\xEC\xE0\x01">::value, 0x400, R"(	constexpr auto CreateDefaultObject() noexcept
+			{ PatternView<"4C 8B DC 57 48 81 EC E0 01">::value, 0x400, R"(	constexpr auto CreateDefaultObject() noexcept
 	{
 		return GetVFunction<UObject*(*)(UClass*)>(this, %d)(this);
 	})" }
